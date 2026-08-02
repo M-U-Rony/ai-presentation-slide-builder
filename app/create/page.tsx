@@ -6,12 +6,14 @@ import Promtpage from "@/components/promtpage";
 import SlideCard from "@/components/slidecard";
 import { allThemes } from "@/lib/theme";
 import { Presentation, Sparkles, ArrowLeft, Palette, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function Create() {
   const [promt, setpromt] = useState<string>('');
   const [slidecnt, setslidecnt] = useState<number>(1);
   const [loading, setloading] = useState(false);
   const [selectedThemeId, setSelectedThemeId] = useState<string>(allThemes[0].id);
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,9 +42,9 @@ export default function Create() {
       }
 
       const data = await res.json();
-      console.log("AI Output:", data);
+
       setloading(false);
-      // router.push('/slides');
+      router.push(`/slides?id=${data.presentationId}`)
 
     } catch (error) {
       console.log(error);

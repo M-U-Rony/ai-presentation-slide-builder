@@ -12,6 +12,8 @@ export interface Slide{
     id: number;
     title: string;
     subtitle: string;
-    slidenumber: number;
+    slideNumber: number;
+    imgUrl: string;
+    presentationId: number
     content: string[];
 }

@@ -32,3 +32,16 @@ AI Presentation Slide Builder application (similar to Gamma.ai).
 - **Files Updated**:
   - [components/slidecard.tsx](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/components/slidecard.tsx): Added `isSelected` and `onClick` props. Renders a prominent `#22C55E` green active border ring (`ring-4 ring-[#22C55E] border-[#22C55E]`), scale elevation (`scale-[1.02]`), and a `✓ Selected` badge when active.
   - [app/create/page.tsx](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/app/create/page.tsx): Added `selectedThemeId` state so clicking any theme card dynamically selects it with active visual feedback.
+
+### Slide Model & Prisma Client Update
+- **Files Updated**:
+  - [prisma/schema.prisma](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/prisma/schema.prisma): Added optional `imgUrl String?` field to the `Slide` model.
+  - [lib/types.ts](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/lib/types.ts): Updated `Slide` interface with `imgUrl` and `presentationId`.
+  - [app/api/generateSlides/route.ts](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/app/api/generateSlides/route.ts): Updated `createMany` data payload for slides to include `imgUrl`, `slidenumber`, `content`, and `presentationId`.
+### Google Slides / PowerPoint Studio Layout & SlideCard Clean Up (/slides)
+- **Files Updated**:
+  - [components/slidecard.tsx](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/components/slidecard.tsx): Removed the theme badge pill (`{theme.id} Theme`) from the top of the card.
+  - [app/slides/page.tsx](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/app/slides/page.tsx): Redesigned layout to match Google Slides / PowerPoint studio:
+    - **Top Toolbar**: Presentation title, theme indicator, slide switcher controls (`< 1 / 3 >`), and green `#22C55E` "Slideshow" button.
+    - **Left Filmstrip**: Numbered slide thumbnail list (1, 2, 3...) with active selection ring (`ring-2 ring-[#22C55E]`).
+    - **Center Stage**: Workspace canvas background (`bg-[#D1D5DB]`) holding the main 16:9 presentation slide canvas with 16:9 status indicator.

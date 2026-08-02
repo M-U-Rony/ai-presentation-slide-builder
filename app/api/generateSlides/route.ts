@@ -2,6 +2,7 @@ import { OpenRouter } from '@openrouter/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient} from '@/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { Slide } from '@/lib/types';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
@@ -13,7 +14,7 @@ try{
 
 const {promt,slidecnt,selectedThemeId} = await req.json();
 
-if (!promt || !slidecnt || selectedThemeId) {
+if (!promt || !slidecnt || !selectedThemeId) {
       return NextResponse.json(
         { error: "Both prompt and slide count are required." },
         { status: 400 }
@@ -37,7 +38,7 @@ EXACT JSON OUTPUT SCHEMA:
       "slideNumber": 1,
       "title": "Slide Heading",
       "subtitle": "Optional slide subheader",
-      "bulletPoints": [
+      "content": [
         "First key point",
         "Second key point",
         "Third key point"
@@ -78,6 +79,7 @@ const completion = await client.chat.send({
 
     const aiResponse = completion.choices[0].message?.content;
     const presentationObject = JSON.parse(aiResponse as string);
+    console.log("presentationObject",presentationObject)
 
 
     const newPresentation = await prisma.prsesentation.create({
@@ -85,16 +87,29 @@ const completion = await client.chat.send({
         title: presentationObject.presentationTitle,
         totalSlides: presentationObject.totalSlides,
         themeColors: selectedThemeId,
-        userId: 1
+        userId: 1 // TODO: Add userId here
       }
     })
 
+    console.log("newPresentation",newPresentation);
 
-    console.log(presentationObject)
+    const newSlides = await prisma.slide.createMany({
+  data: presentationObject.slides.map((slide: Slide) => ({
+    title: slide.title,
+    subtitle: slide.subtitle || "",
+    imgUrl: "",
+    slidenumber: slide.slideNumber,
+    content: slide.content || [],
+    presentationId: newPresentation.id,
+  })),
+});
+
+
+    
 
     return NextResponse.json({
       success: true,
-      data: presentationObject,
+      presentationId: newPresentation.id
     });
 }
 
