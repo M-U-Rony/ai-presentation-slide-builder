@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+datasource db {
+  provider = "postgresql"
+}
+
+model User { 
+  id    Int     @id @default(autoincrement()) 
+  email String  @unique
+  name  String?
+  presentations Prsesentation[]
+}
+
+model Prsesentation {
+  id Int @id @default(autoincrement())
+  title String
+  totalSlides  Int
+  themeColors String
+  userId Int
+  user  User  @relation(fields: [userId],references: [id])
+  slides Slide[]
+ 
+}
+
+model Slide {
+  id  Int @id @default(autoincrement())
+  title String
+  subtitle String
+  slidenumber Int
+  content String[]
+  presentationId Int
+  presentation Prsesentation @relation(fields: [presentationId],references: [id])
+}
