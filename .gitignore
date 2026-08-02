@@ -42,7 +42,10 @@ next-env.d.ts
 
 TODO.md
 
-/generated/
+# generated files
+generated/
+public/generated/
 AGENTS.md
 .agents
 skills-lock.json
+TASK.md

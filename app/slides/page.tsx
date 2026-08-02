@@ -11,10 +11,10 @@ import {
   Play,
   ChevronLeft,
   ChevronRight,
-  Maximize2,
-  Grid,
   Layers,
-  Sparkles,
+  MoreVertical,
+  Image as ImageIcon,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { Slide } from "@/lib/types";
@@ -36,6 +36,53 @@ export default function Slideshow() {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isGeneratingImg, setIsGeneratingImg] = useState(false);
+
+  async function generateImg() {
+    const currentSlide = presentation?.slides?.[activeSlideIndex];
+    if (!currentSlide) return;
+
+    try {
+      setIsGeneratingImg(true);
+      const res = await fetch(`/api/generateImg`, {
+        method: "POST",
+        headers: {
+          "Content-type": "application/json"
+        },
+        body: JSON.stringify({
+          slideId: currentSlide.id,
+          title: currentSlide.title,
+          content: currentSlide.content
+        })
+      });
+
+      if (!res.ok) {
+        console.log("error in generating img");
+        return;
+      }
+
+      const data = await res.json();
+      const rawImgUrl = data.image || data.slide?.imgUrl || data.imgUrl;
+
+      if (rawImgUrl && presentation) {
+        const newImgUrl = rawImgUrl.includes('?') ? rawImgUrl : `${rawImgUrl}?t=${Date.now()}`;
+        setPresentation((prev) => {
+          if (!prev) return null;
+          const updatedSlides = [...prev.slides];
+          updatedSlides[activeSlideIndex] = {
+            ...updatedSlides[activeSlideIndex],
+            imgUrl: newImgUrl
+          };
+          return { ...prev, slides: updatedSlides };
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsGeneratingImg(false);
+    }
+  }
 
   useEffect(() => {
     if (!id) {
@@ -211,13 +258,54 @@ export default function Slideshow() {
 
         {/* CENTER MAIN STAGE (16:9 PRESENTATION CANVAS) */}
         <main className="flex-1 bg-[#D1D5DB] p-4 md:p-10 flex flex-col items-center justify-center overflow-auto relative">
-          <div className="w-full max-w-4xl shadow-2xl rounded-[20px] overflow-hidden transition-all duration-300">
+          <div className="w-full max-w-4xl shadow-2xl rounded-[20px] overflow-hidden transition-all duration-300 relative group">
+            {/* 3-Dot Options Button in Top-Left Corner */}
+            <div className="absolute top-4 left-4 z-20">
+              <button
+                onClick={() => setShowMenu((prev) => !prev)}
+                className="p-2 rounded-xl bg-white/90 backdrop-blur-md hover:bg-white text-gray-700 hover:text-gray-900 border border-gray-200/80 shadow-md transition flex items-center justify-center cursor-pointer"
+                title="Slide Options"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showMenu && (
+                <div className="absolute top-11 left-0 w-48 bg-white border border-gray-200 rounded-xl shadow-xl p-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      generateImg();
+                    }}
+                    disabled={isGeneratingImg}
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-emerald-50 hover:text-[#22C55E] rounded-lg transition w-full text-left cursor-pointer disabled:opacity-50"
+                  >
+                    <ImageIcon className="w-4 h-4 text-[#22C55E]" />
+                    <span>Add Image</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      generateImg();
+                    }}
+                    disabled={isGeneratingImg}
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-blue-50 hover:text-[#3B82F6] rounded-lg transition w-full text-left cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className="w-4 h-4 text-[#3B82F6]" />
+                    <span>Change Image</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
             {currentSlide && (
               <SlideCard
                 theme={currentTheme}
                 title={currentSlide.title}
                 subtitle={currentSlide.subtitle}
                 content={currentSlide.content}
+                imgUrl={currentSlide.imgUrl}
+                isGeneratingImg={isGeneratingImg}
                 isSelected={false}
               />
             )}
@@ -234,5 +322,6 @@ export default function Slideshow() {
     </div>
   );
 }
+
 
 

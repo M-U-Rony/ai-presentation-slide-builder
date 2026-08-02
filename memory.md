@@ -42,6 +42,17 @@ AI Presentation Slide Builder application (similar to Gamma.ai).
 - **Files Updated**:
   - [components/slidecard.tsx](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/components/slidecard.tsx): Removed the theme badge pill (`{theme.id} Theme`) from the top of the card.
   - [app/slides/page.tsx](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/app/slides/page.tsx): Redesigned layout to match Google Slides / PowerPoint studio:
-    - **Top Toolbar**: Presentation title, theme indicator, slide switcher controls (`< 1 / 3 >`), and green `#22C55E` "Slideshow" button.
-    - **Left Filmstrip**: Numbered slide thumbnail list (1, 2, 3...) with active selection ring (`ring-2 ring-[#22C55E]`).
-    - **Center Stage**: Workspace canvas background (`bg-[#D1D5DB]`) holding the main 16:9 presentation slide canvas with 16:9 status indicator.
+### OpenRouter Null Message Content & Image Extraction Fix
+- **Files Updated**:
+  - [app/api/generateImg/route.ts](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/app/api/generateImg/route.ts): Converted `slideId` to `Number(slideId)` in Prisma query. Added `extractImageString` helper function to handle OpenRouter's nested `images` structure (`{ imageUrl: { url: "..." } }`), base64 decoding, URL downloading, and explicit `imgUrl` property in JSON response. Updated `SYSTEM_PROMPT` to strictly generate 100% textless visual graphics, 3D abstract artwork, and visual metaphors without any text/words.
+  - [app/slides/page.tsx](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/app/slides/page.tsx): Added cache-busting query parameter (`?t=${Date.now()}`) to `newImgUrl` in `generateImg()` state updater so Next.js and the browser immediately fetch newly created static files without caching 404s.
+  - [.gitignore](file:///e:/web%20dev/localProjects/ai-presentation-slide-builder/.gitignore): Added `generated/` to ignore auto-generated Prisma Client code alongside runtime static assets (`public/generated/`).
+
+
+
+
+
+
+
+
+
