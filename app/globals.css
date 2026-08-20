@@ -1,1 +1,145 @@
 @import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-forest-ink: #1a3300;
+  --color-highlighter-yellow: #ffe95c;
+  --color-cream-paper: #fcfaf5;
+  --color-pencil-gray: #b6b6b6;
+  --color-whisper-gray: #f1f1f1;
+  --color-sticky-note-teal: #a8e5e5;
+  --color-sticky-note-mint: #d5f5c2;
+  --color-sticky-note-blush: #f6d0ff;
+  --color-terracotta: #cb5521;
+
+  /* Typography */
+  --font-bricolage-grotesque: var(--font-bricolage-grotesque), 'Bricolage Grotesque', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-inter: var(--font-inter), 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-roboto-mono: var(--font-roboto-mono), 'Roboto Mono', ui-monospace, monospace;
+
+  /* Typography — Scale */
+  --text-micro: 11px;
+  --text-caption: 14px;
+  --text-body-sm: 16px;
+  --text-body: 18px;
+  --text-body-lg: 20px;
+  --text-subheading: 28px;
+  --text-heading-sm: 40px;
+  --text-heading: 55px;
+  --text-heading-lg: 66px;
+  --text-display: 90px;
+
+  /* Border Radius */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-subtle: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+  --shadow-subtle-2: rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px;
+  --shadow-nav-glow: rgba(255, 235, 90, 0.01) 0px 527px 211px 0px, rgba(255, 235, 90, 0.05) 0px 297px 178px 0px, rgba(255, 235, 90, 0.09) 0px 132px 132px 0px, rgba(255, 235, 90, 0.1) 0px 33px 72px 0px;
+}
+
+:root {
+  --color-forest-ink: #1a3300;
+  --color-highlighter-yellow: #ffe95c;
+  --color-cream-paper: #fcfaf5;
+  --color-pencil-gray: #b6b6b6;
+  --color-whisper-gray: #f1f1f1;
+  --color-sticky-note-teal: #a8e5e5;
+  --color-sticky-note-mint: #d5f5c2;
+  --color-sticky-note-blush: #f6d0ff;
+  --color-terracotta: #cb5521;
+}
+
+body {
+  background-color: var(--color-cream-paper);
+  color: var(--color-forest-ink);
+  font-family: var(--font-inter);
+}
+
+.font-display {
+  font-family: var(--font-bricolage-grotesque);
+  letter-spacing: 0.04em;
+}
+
+.font-mono-tag {
+  font-family: var(--font-roboto-mono);
+}
+
+.nav-glow {
+  box-shadow: rgba(255, 235, 90, 0.08) 0px 20px 40px 0px, rgba(0, 0, 0, 0.04) 0px 4px 12px 0px;
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 0;
+  }
+
+  /* CRITICAL: Unlock viewport height & overflow during print so all pages print */
+  html,
+  body,
+  #__next,
+  [data-nextjs-scroll-focus-boundary],
+  .h-screen,
+  .max-h-screen,
+  .overflow-hidden,
+  .overflow-y-auto {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    position: static !important;
+    background: #fcfaf5 !important;
+    color: #1a3300 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide screen UI elements during print */
+  header,
+  aside,
+  nav,
+  button,
+  .no-print,
+  .screen-only,
+  .screen-wrapper {
+    display: none !important;
+  }
+
+  /* Display clean print container */
+  .print-container {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    position: relative !important;
+    background: #fcfaf5 !important;
+  }
+
+  .print-slide-page {
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 1.5rem !important;
+    box-sizing: border-box !important;
+    background: #fcfaf5 !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+}
+
+/* Hide print-only container on normal web screen */
+.print-container {
+  display: none;
+}

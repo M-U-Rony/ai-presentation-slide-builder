@@ -9,11 +9,22 @@ This is an Ai presentation slide builder app like gamma.ai. Where user comes giv
 
 # Don't assume. Don't hide confusion. Surface tradeoffs.
 # Write the minimum that solves the problem.Nothing speculative.
-# Touch only what you must. Clean up only your own mess.  
+# Touch only what you must. Clean up only your own mess.
+# Never use bedge in ui  
 
 # Rules:-
 When I write Code this. Then Change the code in ide otherwise not. Keep the best practices and make the Ui responsive accross all the devices.
 
-After any code changes keep the documentation in memory.md.
+## Agent skills
 
+### Issue tracker
 
+Issues and specs live as local markdown files under `.scratch/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout (`CONTEXT.md` + `docs/adr/` at repo root). See `docs/agents/domain.md`.

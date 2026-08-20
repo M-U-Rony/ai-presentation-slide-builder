@@ -2,8 +2,8 @@
 
 import SlideCard from "@/components/slidecard";
 import { allThemes } from "@/lib/theme";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
 import {
   Loader2,
   ArrowLeft,
@@ -15,9 +15,18 @@ import {
   MoreVertical,
   Image as ImageIcon,
   RefreshCw,
+  X,
+  Maximize2,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  LogOut,
+  Sparkles
 } from "lucide-react";
 import Link from "next/link";
 import { Slide } from "@/lib/types";
+import pptxgen from "pptxgenjs";
+import { authClient } from "@/lib/auth-client";
 
 interface PresentationData {
   id: number;
@@ -28,9 +37,17 @@ interface PresentationData {
   slides: Slide[];
 }
 
-export default function Slideshow() {
+function SlideshowContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const id = searchParams.get("id");
+  const { data: session, isPending } = authClient.useSession();
+
+  useEffect(() => {
+    if (!isPending && !session?.user) {
+      router.push("/signin");
+    }
+  }, [session, isPending, router]);
 
   const [presentation, setPresentation] = useState<PresentationData | null>(null);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
@@ -38,6 +55,7 @@ export default function Slideshow() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isGeneratingImg, setIsGeneratingImg] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   async function generateImg() {
     const currentSlide = presentation?.slides?.[activeSlideIndex];
@@ -84,6 +102,80 @@ export default function Slideshow() {
     }
   }
 
+  async function exportToPPTX() {
+    if (!presentation || !presentation.slides?.length) return;
+
+    try {
+      setIsExporting(true);
+      const pptx = new pptxgen();
+      pptx.layout = "LAYOUT_16x9";
+
+      presentation.slides.forEach((slide) => {
+        const pptxSlide = pptx.addSlide();
+
+        // Slide Title
+        pptxSlide.addText(slide.title, {
+          x: 0.5,
+          y: 0.5,
+          w: "90%",
+          h: 0.8,
+          fontSize: 24,
+          bold: true,
+          color: "1A3300",
+        });
+
+        // Subtitle
+        if (slide.subtitle) {
+          pptxSlide.addText(slide.subtitle, {
+            x: 0.5,
+            y: 1.3,
+            w: "90%",
+            h: 0.5,
+            fontSize: 14,
+            color: "556B2F",
+          });
+        }
+
+        // Bullet points
+        if (slide.content && slide.content.length > 0) {
+          const bullets = slide.content.map((point) => ({
+            text: point,
+            options: { bullet: true, fontSize: 13, color: "1A3300" },
+          }));
+          pptxSlide.addText(bullets, {
+            x: 0.5,
+            y: 2.0,
+            w: slide.imgUrl ? "55%" : "90%",
+            h: 4.5,
+          });
+        }
+
+        // Image
+        if (slide.imgUrl) {
+          pptxSlide.addImage({
+            path: slide.imgUrl,
+            x: 6.0,
+            y: 1.5,
+            w: 3.8,
+            h: 3.8,
+          });
+        }
+      });
+
+      await pptx.writeFile({
+        fileName: `${presentation.title || "presentation"}.pptx`,
+      });
+    } catch (error) {
+      console.error("Failed to export PPTX:", error);
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  function exportToPDF() {
+    window.print();
+  }
+
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -119,27 +211,30 @@ export default function Slideshow() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F3F4F6] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22C55E]" />
-        <p className="text-sm font-semibold text-gray-600">Loading your presentation...</p>
+      <div className="h-screen w-screen bg-[#fcfaf5] flex flex-col items-center justify-center gap-3 text-[#1a3300]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1a3300]" />
+        <p className="text-sm font-semibold">Opening presentation studio...</p>
       </div>
     );
   }
 
   if (!presentation || !presentation.slides?.length) {
     return (
-      <div className="min-h-screen bg-[#F3F4F6] flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-white p-8 rounded-[20px] shadow-sm border border-gray-200 max-w-md w-full">
-          <PresentationIcon className="w-12 h-12 text-[#22C55E] mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">No Presentation Found</h2>
-          <p className="text-sm text-gray-600 mb-6">
+      <div className="h-screen w-screen bg-[#fcfaf5] flex flex-col items-center justify-center p-6 text-center text-[#1a3300]">
+        <div className="bg-white p-8 rounded-[12px] shadow-sm border border-[#1a3300] max-w-md w-full">
+          <div className="w-12 h-12 rounded-[6px] bg-[#ffe95c] text-[#1a3300] flex items-center justify-center mx-auto mb-4 border border-[#1a3300]/20 font-bold">
+            <PresentationIcon className="w-6 h-6" />
+          </div>
+          <h2 className="font-display text-xl font-bold mb-2">No Presentation Found</h2>
+          <p className="text-xs text-[#1a3300]/70 mb-6">
             Could not find slides for this presentation ID.
           </p>
           <Link
             href="/create"
-            className="inline-flex items-center justify-center gap-2 w-full min-h-[44px] bg-[#22C55E] hover:bg-[#1ea750] text-white font-semibold rounded-[20px] transition shadow-md"
+            className="inline-flex items-center justify-center gap-2 w-full min-h-[44px] bg-[#1a3300] hover:bg-[#1a3300]/90 text-[#fcfaf5] font-semibold text-xs rounded-[6px] transition shadow-sm cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" /> Create New Presentation
+            <span className="font-mono text-base leading-none">→</span>
+            <span>Create New Presentation</span>
           </Link>
         </div>
       </div>
@@ -147,181 +242,298 @@ export default function Slideshow() {
   }
 
   return (
-    <div className="min-h-screen bg-[#E5E7EB] text-gray-900 flex flex-col font-sans selection:bg-[#22C55E]/20">
-      {/* ==================== GOOGLE SLIDES / POWERPOINT TOP TOOLBAR ==================== */}
-      <header className="bg-white border-b border-gray-300 px-4 py-2.5 flex items-center justify-between gap-4 shadow-xs select-none">
-        {/* Left: Branding & Presentation Title */}
-        <div className="flex items-center gap-3">
-          <Link
-            href="/create"
-            className="p-2 rounded-[10px] hover:bg-gray-100 text-gray-600 transition flex items-center gap-1.5 text-xs font-semibold"
-            title="Back to Create"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Workspace</span>
-          </Link>
-          <div className="h-5 w-[1px] bg-gray-300" />
-          <div className="flex items-center gap-2">
-            <PresentationIcon className="w-5 h-5 text-[#22C55E]" />
-            <h1 className="text-base font-bold text-gray-900 line-clamp-1">{presentation.title}</h1>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 capitalize hidden md:inline">
-              {presentation.themeColors} Theme
-            </span>
-          </div>
-        </div>
-
-        {/* Center: Slide Counter & Navigator Controls */}
-        <div className="flex items-center gap-2 bg-gray-100 border border-gray-300 rounded-xl px-2 py-1">
-          <button
-            onClick={() => setActiveSlideIndex((prev) => Math.max(0, prev - 1))}
-            disabled={activeSlideIndex === 0}
-            className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-700 disabled:opacity-30 transition"
-            title="Previous Slide"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-xs font-bold text-gray-800 px-2 min-w-[70px] text-center select-none">
-            {activeSlideIndex + 1} / {presentation.slides.length}
-          </span>
-          <button
-            onClick={() => setActiveSlideIndex((prev) => Math.min(presentation.slides.length - 1, prev + 1))}
-            disabled={activeSlideIndex === presentation.slides.length - 1}
-            className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-700 disabled:opacity-30 transition"
-            title="Next Slide"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Right: Present Button */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#22C55E] hover:bg-[#1ea750] text-white font-semibold text-xs md:text-sm rounded-[16px] transition shadow-sm shadow-[#22C55E]/20"
-          >
-            <Play className="w-4 h-4 fill-white" />
-            <span>Slideshow</span>
-          </button>
-        </div>
-      </header>
-
-      {/* ==================== WORKSPACE: LEFT FILMSTRIP + CENTER STAGE ==================== */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* LEFT FILMSTRIP (SLIDE NAVIGATION PANEL) */}
-        <aside className="w-64 md:w-80 border-r border-gray-300 bg-gray-100 p-3 md:p-4 flex flex-col gap-3 overflow-y-auto shrink-0 select-none">
-          <div className="flex items-center justify-between px-1 pb-2 border-b border-gray-300 text-xs font-bold text-gray-500 uppercase tracking-wider">
-            <span className="flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-[#22C55E]" />
-              Filmstrip
-            </span>
-            <span>{presentation.slides.length} Slides</span>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {presentation.slides.map((slide, index) => {
-              const isSelected = index === activeSlideIndex;
-              return (
-                <div
-                  key={slide.id || index}
-                  onClick={() => setActiveSlideIndex(index)}
-                  className="flex items-start gap-2.5 cursor-pointer group"
-                >
-                  {/* Slide Number (PowerPoint / Google Slides Filmstrip Index) */}
-                  <span
-                    className={`text-xs font-bold mt-2 min-w-[18px] text-right ${
-                      isSelected ? "text-[#22C55E]" : "text-gray-400 group-hover:text-gray-600"
-                    }`}
-                  >
-                    {index + 1}
-                  </span>
-
-                  {/* Thumbnail Card */}
-                  <div
-                    className={`flex-1 rounded-[16px] border transition-all duration-200 overflow-hidden bg-white p-3 shadow-xs ${
-                      isSelected
-                        ? "border-[#22C55E] ring-2 ring-[#22C55E]/40 shadow-md scale-[1.01]"
-                        : "border-gray-300 hover:border-gray-400 hover:shadow-sm opacity-90 hover:opacity-100"
-                    }`}
-                  >
-                    <h3 className="text-xs font-bold text-gray-900 line-clamp-1 group-hover:text-[#22C55E] transition-colors">
-                      {slide.title}
-                    </h3>
-                    <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">
-                      {slide.subtitle}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </aside>
-
-        {/* CENTER MAIN STAGE (16:9 PRESENTATION CANVAS) */}
-        <main className="flex-1 bg-[#D1D5DB] p-4 md:p-10 flex flex-col items-center justify-center overflow-auto relative">
-          <div className="w-full max-w-4xl shadow-2xl rounded-[20px] overflow-hidden transition-all duration-300 relative group">
-            {/* 3-Dot Options Button in Top-Left Corner */}
-            <div className="absolute top-4 left-4 z-20">
-              <button
-                onClick={() => setShowMenu((prev) => !prev)}
-                className="p-2 rounded-xl bg-white/90 backdrop-blur-md hover:bg-white text-gray-700 hover:text-gray-900 border border-gray-200/80 shadow-md transition flex items-center justify-center cursor-pointer"
-                title="Slide Options"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
-
-              {/* Dropdown Menu */}
-              {showMenu && (
-                <div className="absolute top-11 left-0 w-48 bg-white border border-gray-200 rounded-xl shadow-xl p-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      generateImg();
-                    }}
-                    disabled={isGeneratingImg}
-                    className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-emerald-50 hover:text-[#22C55E] rounded-lg transition w-full text-left cursor-pointer disabled:opacity-50"
-                  >
-                    <ImageIcon className="w-4 h-4 text-[#22C55E]" />
-                    <span>Add Image</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowMenu(false);
-                      generateImg();
-                    }}
-                    disabled={isGeneratingImg}
-                    className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-blue-50 hover:text-[#3B82F6] rounded-lg transition w-full text-left cursor-pointer disabled:opacity-50"
-                  >
-                    <RefreshCw className="w-4 h-4 text-[#3B82F6]" />
-                    <span>Change Image</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {currentSlide && (
+    <>
+      {/* PRINT-ONLY CONTAINER (EXPORT PDF RENDERS ALL SLIDES IN DECK) */}
+      <div className="print-container">
+        {presentation.slides.map((slide, idx) => (
+          <div key={slide.id || idx} className="print-slide-page">
+            <div className="w-full max-w-[1200px] aspect-[16/9] shadow-none">
               <SlideCard
                 theme={currentTheme}
-                title={currentSlide.title}
-                subtitle={currentSlide.subtitle}
-                content={currentSlide.content}
-                imgUrl={currentSlide.imgUrl}
-                isGeneratingImg={isGeneratingImg}
+                title={slide.title}
+                subtitle={slide.subtitle}
+                content={slide.content}
+                imgUrl={slide.imgUrl}
                 isSelected={false}
               />
-            )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* INTERACTIVE WEB SCREEN CONTAINER (HIDDEN WHEN PRINTING TO PDF) */}
+      <div className="screen-wrapper no-print h-screen w-screen max-h-screen overflow-hidden bg-[#fcfaf5] text-[#1a3300] flex flex-col font-sans selection:bg-[#ffe95c] selection:text-[#1a3300] select-none">
+        
+        {/* FULLSCREEN PRESENTATION MODE OVERLAY */}
+        {isFullscreen && currentSlide && (
+          <div className="fixed inset-0 z-[100] bg-[#1a3300] text-[#fcfaf5] flex flex-col items-center justify-center p-2 sm:p-6 animate-in fade-in duration-200 select-none">
+            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-3 z-50">
+              <span className="text-xs font-mono-tag text-[#1a3300] bg-[#ffe95c] px-3.5 py-1.5 rounded-[6px] font-bold">
+                Slide {activeSlideIndex + 1} / {presentation.slides.length}
+              </span>
+              <button
+                onClick={() => setIsFullscreen(false)}
+                className="p-2 rounded-[6px] bg-[#fcfaf5] text-[#1a3300] hover:bg-[#ffe95c] transition cursor-pointer"
+                title="Exit Slideshow"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Full Page Width & Height 16:9 Presentation Canvas Container */}
+            <div className="w-full h-full flex items-center justify-center p-2 sm:p-6 overflow-hidden">
+              <div className="w-full max-w-[1400px] h-full max-h-[85vh] flex items-center justify-center rounded-[12px] overflow-hidden">
+                <SlideCard
+                  theme={currentTheme}
+                  title={currentSlide.title}
+                  subtitle={currentSlide.subtitle}
+                  content={currentSlide.content}
+                  imgUrl={currentSlide.imgUrl}
+                  isGeneratingImg={isGeneratingImg}
+                  isSelected={false}
+                />
+              </div>
+            </div>
+
+            {/* Fullscreen Navigation Controls */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#fcfaf5] text-[#1a3300] px-5 py-2 rounded-[6px] border border-[#1a3300] shadow-xl z-50">
+              <button
+                onClick={() => setActiveSlideIndex((prev) => Math.max(0, prev - 1))}
+                disabled={activeSlideIndex === 0}
+                className="p-1.5 rounded-[4px] hover:bg-[#ffe95c] disabled:opacity-30 transition cursor-pointer"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <span className="text-xs font-mono-tag font-bold px-2">
+                {activeSlideIndex + 1} of {presentation.slides.length}
+              </span>
+              <button
+                onClick={() => setActiveSlideIndex((prev) => Math.min(presentation.slides.length - 1, prev + 1))}
+                disabled={activeSlideIndex === presentation.slides.length - 1}
+                className="p-1.5 rounded-[4px] hover:bg-[#ffe95c] disabled:opacity-30 transition cursor-pointer"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ==================== UNIVERSAL TOP NAVBAR & STUDIO TOOLBAR ==================== */}
+        <header className="h-14 shrink-0 bg-[#fcfaf5] border-b border-[#b6b6b6] px-4 py-2 flex items-center justify-between gap-4 select-none">
+          {/* Left: Navigation Links & Presentation Title */}
+          <div className="flex items-center gap-3.5">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-7 h-7 rounded-[4px] bg-[#ffe95c] border border-[#1a3300]/20 text-[#1a3300] flex items-center justify-center font-display font-bold text-xs group-hover:scale-105 transition-transform">
+                lo
+              </div>
+              <span className="font-bold text-sm tracking-tight text-[#1a3300] hidden sm:inline">
+                SlideAI
+              </span>
+            </Link>
+
+            <div className="h-4 w-[1px] bg-[#b6b6b6]" />
+
+            <div className="flex items-center gap-2.5 text-xs font-medium text-[#1a3300]">
+              <Link href="/" className="hover:underline decoration-[#ffe95c] transition-all">Home</Link>
+              <Link href="/dashboard" className="hover:underline decoration-[#ffe95c] transition-all">Dashboard</Link>
+              <Link href="/create" className="hover:underline decoration-[#ffe95c] transition-all">Create</Link>
+            </div>
+
+            <div className="h-4 w-[1px] bg-[#b6b6b6] hidden md:block" />
+
+            <h1 className="text-xs sm:text-sm font-display font-bold text-[#1a3300] line-clamp-1 hidden md:block">
+              {presentation.title}
+            </h1>
           </div>
 
-          {/* Bottom Canvas Controls */}
-          <div className="mt-4 flex items-center gap-4 text-xs font-medium text-gray-600 bg-white/80 backdrop-blur-md border border-gray-300 px-4 py-1.5 rounded-full shadow-xs">
-            <span>Canvas 16:9</span>
-            <span className="w-1 h-1 rounded-full bg-gray-400" />
-            <span>Slide {activeSlideIndex + 1} of {presentation.slides.length}</span>
+          {/* Center: Slide Navigator Controls */}
+          <div className="flex items-center gap-1.5 bg-white border border-[#b6b6b6] rounded-[6px] px-2 py-0.5">
+            <button
+              onClick={() => setActiveSlideIndex((prev) => Math.max(0, prev - 1))}
+              disabled={activeSlideIndex === 0}
+              className="p-1 rounded-[4px] hover:bg-[#ffe95c] text-[#1a3300] disabled:opacity-30 transition cursor-pointer"
+              title="Previous Slide"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-xs font-mono-tag font-bold text-[#1a3300] px-2 min-w-[65px] text-center select-none">
+              {activeSlideIndex + 1} / {presentation.slides.length}
+            </span>
+            <button
+              onClick={() => setActiveSlideIndex((prev) => Math.min(presentation.slides.length - 1, prev + 1))}
+              disabled={activeSlideIndex === presentation.slides.length - 1}
+              className="p-1 rounded-[4px] hover:bg-[#ffe95c] text-[#1a3300] disabled:opacity-30 transition cursor-pointer"
+              title="Next Slide"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-        </main>
+
+          {/* Right: Export Buttons & Slideshow Present Button */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportToPPTX}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#ffe95c] border border-[#1a3300] disabled:bg-[#f1f1f1] text-[#1a3300] font-semibold text-xs rounded-[6px] transition cursor-pointer"
+              title="Export PowerPoint (.pptx)"
+            >
+              {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">PPTX</span>
+            </button>
+
+            <button
+              onClick={exportToPDF}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#ffe95c] border border-[#1a3300] text-[#1a3300] font-semibold text-xs rounded-[6px] transition cursor-pointer"
+              title="Export PDF (All Slides)"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">PDF</span>
+            </button>
+
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1a3300] hover:bg-[#1a3300]/90 text-[#fcfaf5] font-semibold text-xs rounded-[6px] transition shadow-xs cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Present</span>
+            </button>
+
+            <button
+              onClick={async () => {
+                await authClient.signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      window.location.href = "/signin";
+                    }
+                  }
+                });
+              }}
+              className="p-1.5 rounded-[6px] border border-[#b6b6b6] text-[#1a3300]/70 hover:text-[#cb5521] hover:border-[#cb5521] transition flex items-center justify-center cursor-pointer"
+              title="Logout"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </header>
+
+        {/* ==================== WORKSPACE ==================== */}
+        <div className="flex-1 h-0 overflow-hidden flex">
+          
+          {/* POWERPOINT LEFT FILMSTRIP SIDEBAR */}
+          <aside className="w-44 sm:w-52 md:w-60 h-full border-r border-[#b6b6b6] bg-[#fcfaf5] p-3 flex flex-col gap-2.5 overflow-y-auto shrink-0 select-none">
+            <div className="flex flex-col gap-2.5">
+              {presentation.slides.map((slide, index) => {
+                const isSelected = index === activeSlideIndex;
+                return (
+                  <div
+                    key={slide.id || index}
+                    onClick={() => setActiveSlideIndex(index)}
+                    className="flex items-start gap-1.5 cursor-pointer group"
+                  >
+                    {/* Slide Index Number on left side */}
+                    <span
+                      className={`text-xs font-mono-tag mt-1 min-w-[14px] text-right ${
+                        isSelected ? "text-[#1a3300] font-bold" : "text-[#1a3300]/50 group-hover:text-[#1a3300]"
+                      }`}
+                    >
+                      {index + 1}
+                    </span>
+
+                    {/* 16:9 Thumbnail Preview Card */}
+                    <div
+                      className={`flex-1 rounded-[6px] transition-all duration-150 overflow-hidden ${
+                        isSelected
+                          ? "border-2 border-[#1a3300] ring-2 ring-[#ffe95c]"
+                          : "border border-[#b6b6b6] hover:border-[#1a3300]"
+                      }`}
+                    >
+                      <SlideCard
+                        theme={currentTheme}
+                        title={slide.title}
+                        subtitle={slide.subtitle}
+                        content={slide.content}
+                        imgUrl={slide.imgUrl}
+                        isThumbnail={true}
+                        isSelected={false}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* CENTER MAIN STAGE */}
+          <main className="flex-1 h-full bg-[#f1f1f1] p-4 md:p-8 flex flex-col items-center justify-center overflow-auto relative">
+            <div className="w-full max-w-4xl shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] rounded-[12px] overflow-hidden border border-[#b6b6b6] transition-all duration-200 relative group bg-[#fcfaf5] shrink-0 my-auto">
+              
+              {/* Options Dropdown Menu Button */}
+              <div className="absolute top-4 left-4 z-20">
+                <button
+                  onClick={() => setShowMenu((prev) => !prev)}
+                  className="p-2 rounded-[6px] bg-white/90 backdrop-blur-md hover:bg-white text-[#1a3300] border border-[#1a3300] shadow-xs transition flex items-center justify-center cursor-pointer"
+                  title="Slide Options"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showMenu && (
+                  <div className="absolute top-11 left-0 w-48 bg-white border border-[#1a3300] rounded-[6px] shadow-lg p-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        generateImg();
+                      }}
+                      disabled={isGeneratingImg}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#1a3300] hover:bg-[#ffe95c] rounded-[4px] transition w-full text-left cursor-pointer disabled:opacity-50"
+                    >
+                      <ImageIcon className="w-4 h-4 text-[#1a3300]" />
+                      <span>Generate Visual</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        generateImg();
+                      }}
+                      disabled={isGeneratingImg}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#1a3300] hover:bg-[#ffe95c] rounded-[4px] transition w-full text-left cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw className="w-4 h-4 text-[#1a3300]" />
+                      <span>Re-generate Image</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {currentSlide && (
+                <SlideCard
+                  theme={currentTheme}
+                  title={currentSlide.title}
+                  subtitle={currentSlide.subtitle}
+                  content={currentSlide.content}
+                  imgUrl={currentSlide.imgUrl}
+                  isGeneratingImg={isGeneratingImg}
+                  isSelected={false}
+                />
+              )}
+            </div>
+          </main>
+
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
-
-
+export default function Slideshow() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen w-screen bg-[#fcfaf5] flex items-center justify-center text-[#1a3300] text-sm font-semibold gap-2">
+        <Loader2 className="w-5 h-5 animate-spin text-[#1a3300]" /> Loading Studio...
+      </div>
+    }>
+      <SlideshowContent />
+    </Suspense>
+  );
+}
