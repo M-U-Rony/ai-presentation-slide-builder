@@ -106,16 +106,27 @@ function CreateForm() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {displayThemes.map((theme) => (
-            <SlideCard 
-              key={theme.id} 
-              theme={theme} 
-              title={theme.name} 
-              subtitle={"Click to apply this palette preset"}
-              isSelected={selectedThemeId === theme.id}
-              onClick={() => setSelectedThemeId(theme.id)}
-            />
-          ))}
+          {displayThemes.map((theme) => {
+            const isSelected = selectedThemeId === theme.id;
+            return (
+              <div
+                key={theme.id}
+                onClick={() => setSelectedThemeId(theme.id)}
+                className={`rounded-[14px] transition-all duration-200 cursor-pointer ${
+                  isSelected
+                    ? "ring-4 ring-offset-2 ring-emerald-500 shadow-xl scale-[1.02]"
+                    : "hover:scale-[1.01] opacity-90 hover:opacity-100"
+                }`}
+              >
+                <SlideCard 
+                  theme={theme} 
+                  title={theme.name} 
+                  subtitle={"Click to apply this visual palette"}
+                  isSelected={isSelected}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 

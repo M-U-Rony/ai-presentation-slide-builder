@@ -1,8 +1,28 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { ThemeColors } from "@/lib/theme";
-import { Loader2 } from "lucide-react";
+import { SlideLayout, parseSlideData } from "@/lib/slideLayouts";
+import {
+  NavyChevronOverlay,
+  HexagonOverlay,
+  GeometricFacetsOverlay,
+  FramedEditorialOverlay,
+  MinimalAuraOverlay,
+  MemphisBlueOverlay,
+  CorporateCapsuleOverlay,
+  CyanStepsOverlay,
+  MinimalistOrangeOverlay,
+} from "./slide-themes";
+import {
+  IntroSlide,
+  TitleBullets,
+  StatGrid,
+  Quote,
+  ImageText,
+  ProcessSteps,
+  Comparison,
+} from "./slide-layouts";
 
 interface slidecardProps {
   theme: ThemeColors;
@@ -10,10 +30,12 @@ interface slidecardProps {
   subtitle: string;
   content?: string[];
   imgUrl?: string;
+  data?: SlideLayout;
   isSelected?: boolean;
   onClick?: () => void;
   isGeneratingImg?: boolean;
   isThumbnail?: boolean;
+  slideNumber?: number;
 }
 
 export default function SlideCard({
@@ -22,47 +44,114 @@ export default function SlideCard({
   subtitle,
   content,
   imgUrl,
+  data,
   isSelected = false,
   onClick,
   isGeneratingImg = false,
   isThumbnail = false,
+  slideNumber,
 }: slidecardProps) {
-  const hasRightSide = Boolean(imgUrl || isGeneratingImg);
+  const slideData: SlideLayout = useMemo(() => {
+    return data || parseSlideData({ title, subtitle, content, imgUrl, slideNumber });
+  }, [data, title, subtitle, content, imgUrl, slideNumber]);
+
+  const overlayType = theme.overlayType || "minimalist-orange";
+
+  const renderBackgroundOverlay = () => {
+    switch (overlayType) {
+      case "minimalist-orange":
+        return <MinimalistOrangeOverlay isThumbnail={isThumbnail} />;
+      case "cyan-steps":
+        return <CyanStepsOverlay isThumbnail={isThumbnail} />;
+      case "corporate-capsule":
+        return <CorporateCapsuleOverlay isThumbnail={isThumbnail} />;
+      case "memphis-blue":
+        return <MemphisBlueOverlay isThumbnail={isThumbnail} />;
+      case "minimal-aura":
+        return <MinimalAuraOverlay isThumbnail={isThumbnail} />;
+      case "framed-editorial":
+        return <FramedEditorialOverlay isThumbnail={isThumbnail} />;
+      case "navy-chevron":
+        return <NavyChevronOverlay isThumbnail={isThumbnail} />;
+      case "geometric-green":
+        return <GeometricFacetsOverlay isThumbnail={isThumbnail} />;
+      case "hexagon":
+      default:
+        return <HexagonOverlay isThumbnail={isThumbnail} />;
+    }
+  };
+
+  const renderLayoutContent = () => {
+    switch (slideData.layoutType) {
+      case "intro":
+        return <IntroSlide theme={theme} data={slideData} isThumbnail={isThumbnail} />;
+      case "stat_grid":
+        return <StatGrid theme={theme} data={slideData} isThumbnail={isThumbnail} />;
+      case "quote":
+        return <Quote theme={theme} data={slideData} isThumbnail={isThumbnail} />;
+      case "image_text":
+        return (
+          <ImageText
+            theme={theme}
+            data={slideData}
+            isGeneratingImg={isGeneratingImg}
+            isThumbnail={isThumbnail}
+          />
+        );
+      case "process_steps":
+        return <ProcessSteps theme={theme} data={slideData} isThumbnail={isThumbnail} />;
+      case "comparison":
+        return <Comparison theme={theme} data={slideData} isThumbnail={isThumbnail} />;
+      case "title_bullets":
+      default:
+        return (
+          <TitleBullets
+            theme={theme}
+            data={slideData}
+            isGeneratingImg={isGeneratingImg}
+            isThumbnail={isThumbnail}
+          />
+        );
+    }
+  };
+
+  const isOrange = overlayType === "minimalist-orange";
+  const isSteps = overlayType === "cyan-steps";
+  const isCapsule = overlayType === "corporate-capsule";
+  const isMemphis = overlayType === "memphis-blue";
+  const isAura = overlayType === "minimal-aura";
+  const isEditorial = overlayType === "framed-editorial";
+  const isHexagon = overlayType === "hexagon";
+  const isNavy = overlayType === "navy-chevron";
 
   if (isThumbnail) {
     return (
       <div
         onClick={onClick}
-        className={`w-full aspect-[16/9] rounded-[6px] border cursor-pointer select-none p-2.5 overflow-hidden flex flex-col justify-between transition-all ${
+        className={`w-full aspect-[16/9] rounded-[6px] border cursor-pointer select-none p-2.5 overflow-hidden flex flex-col justify-between transition-all relative ${
           theme.background
         } ${
+          isEditorial || isMemphis || isSteps
+            ? "px-3.5 py-2.5"
+            : isOrange
+            ? "pl-3 pr-5 pb-3.5"
+            : isCapsule
+            ? "pl-3 pr-7"
+            : isNavy
+            ? "pl-5 pr-2"
+            : isHexagon
+            ? "pl-3 pr-5"
+            : "pl-3.5 pr-3.5"
+        } ${
           isSelected
-            ? "border-2 border-[#1a3300] shadow-[0_0_0_2px_#ffe95c]"
-            : "border-[#b6b6b6] hover:border-[#1a3300]/60"
+            ? `${theme.activeRing}`
+            : "border-slate-300 hover:border-slate-400"
         }`}
       >
-        <div className="flex-1 flex flex-col justify-between overflow-hidden">
-          <div className="space-y-1">
-            <h4 className={`text-[11px] font-display font-bold line-clamp-1 leading-tight ${theme.primaryText}`}>
-              {title}
-            </h4>
-            {subtitle && (
-              <p className={`text-[9px] line-clamp-1 opacity-80 leading-tight ${theme.secondaryText}`}>
-                {subtitle}
-              </p>
-            )}
-          </div>
+        {renderBackgroundOverlay()}
 
-          {content && content.length > 0 && (
-            <div className="space-y-0.5 mt-1 border-t border-current/10 pt-1">
-              {content.slice(0, 2).map((point, index) => (
-                <div key={index} className="flex items-center gap-1 text-[8px] leading-none">
-                  <span className="w-1 h-1 rounded-full bg-[#1a3300] shrink-0" />
-                  <span className={`line-clamp-1 ${theme.secondaryText}`}>{point}</span>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="relative z-10 flex-1 flex flex-col justify-between overflow-hidden">
+          {renderLayoutContent()}
         </div>
       </div>
     );
@@ -71,71 +160,36 @@ export default function SlideCard({
   return (
     <div
       onClick={onClick}
-      className={`w-full aspect-[16/9] rounded-[12px] border cursor-pointer transition-all duration-200 relative overflow-hidden select-none p-6 sm:p-8 flex flex-col justify-between ${
-        theme.border
+      className={`w-full aspect-[16/9] rounded-[12px] border cursor-pointer transition-all duration-200 relative overflow-hidden select-none p-6 sm:p-10 md:p-14 flex flex-col justify-between shadow-lg ${
+        isOrange
+          ? "pl-10 sm:pl-16 md:pl-20 pr-16 sm:pr-24 md:pr-32 pt-8 sm:pt-12 md:pt-14 pb-14 sm:pb-20 md:pb-24"
+          : isSteps
+          ? "px-12 sm:px-20 md:px-28 py-10 sm:py-14 md:py-16"
+          : isCapsule
+          ? "pl-10 sm:pl-16 md:pl-20 pr-16 sm:pr-28 md:pr-40 lg:pr-52 py-10 sm:py-14 md:py-16"
+          : isMemphis
+          ? "px-12 sm:px-20 md:px-28 py-10 sm:py-14 md:py-16"
+          : isAura
+          ? "px-8 sm:px-14 md:px-20 py-8 sm:py-12 md:py-14"
+          : isEditorial
+          ? "px-10 sm:px-16 md:px-24 py-8 sm:py-12 md:py-16"
+          : isNavy
+          ? "pl-16 sm:pl-28 md:pl-36 lg:pl-44 pr-6 sm:pr-10 md:pr-14"
+          : isHexagon
+          ? "pl-8 sm:pl-14 md:pl-20 pr-16 sm:pr-24 md:pr-36"
+          : "pl-10 sm:pl-16 md:pl-20 pr-16 sm:pr-24 md:pr-32"
       } ${theme.background} ${
         isSelected
           ? `${theme.activeRing} scale-[1.01]`
-          : "hover:scale-[1.005] hover:border-[#1a3300] opacity-95 hover:opacity-100 shadow-sm"
+          : `${theme.border} hover:scale-[1.002] hover:border-slate-400 opacity-95 hover:opacity-100`
       }`}
     >
-      {/* Inner Card Presentation Canvas Container */}
-      <div className={`w-full h-full rounded-[10px] ${theme.cardBg} border border-current/15 p-6 sm:p-8 flex flex-col justify-between overflow-hidden relative`}>
-        <div className={`grid grid-cols-1 ${hasRightSide ? "md:grid-cols-12 gap-8" : "gap-6"} items-center h-full my-auto overflow-y-auto`}>
-          
-          {/* Left Column: Slide Typography & Bullets */}
-          <div className={`${hasRightSide ? "md:col-span-7" : "col-span-full"} space-y-4 my-auto`}>
-            <div className="space-y-2">
-              <h2 className={`font-display text-2xl sm:text-3xl font-extrabold tracking-[0.04em] leading-[1.1] [text-wrap:balance] ${theme.primaryText}`}>
-                {title}
-              </h2>
-              {subtitle && (
-                <p className={`text-sm sm:text-base font-normal leading-relaxed ${theme.secondaryText}`}>
-                  {subtitle}
-                </p>
-              )}
-            </div>
+      {/* Decorative Theme Overlay Background */}
+      {renderBackgroundOverlay()}
 
-            {content && content.length > 0 && (
-              <div className="space-y-2 pt-3 border-t border-current/15">
-                {content.map((point, index) => (
-                  <div key={index} className="flex items-start gap-2.5 text-xs sm:text-sm leading-relaxed">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#1a3300] mt-2 shrink-0" />
-                    <span className={theme.secondaryText}>{point}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Slide Image Visual Container */}
-          {hasRightSide && (
-            <div className="md:col-span-5 w-full flex items-center justify-center h-full my-auto">
-              {isGeneratingImg ? (
-                <div className="w-full h-44 md:h-52 rounded-[12px] bg-black/5 border border-dashed border-[#1a3300]/40 flex flex-col items-center justify-center p-4 text-center gap-2.5 animate-pulse">
-                  <div className="p-2.5 rounded-full bg-[#ffe95c] text-[#1a3300]">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <span className={`text-xs font-bold block ${theme.primaryText}`}>
-                      Generating Visual Illustration...
-                    </span>
-                    <span className="text-[10px] text-[#1a3300]/60">Sketching visual artwork</span>
-                  </div>
-                </div>
-              ) : imgUrl ? (
-                <div className="relative w-full overflow-hidden rounded-[12px] border border-[#1a3300]/20 shadow-sm group/img max-h-52">
-                  <img
-                    src={imgUrl}
-                    alt={title}
-                    className="w-full h-44 md:h-52 object-cover rounded-[12px] transition-transform duration-500 group-hover/img:scale-105"
-                  />
-                </div>
-              ) : null}
-            </div>
-          )}
-
-        </div>
+      {/* Dynamic Slide Layout Content */}
+      <div className="relative z-10 w-full h-full flex flex-col justify-between overflow-hidden">
+        {renderLayoutContent()}
       </div>
     </div>
   );

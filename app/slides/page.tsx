@@ -6,22 +6,18 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import {
   Loader2,
-  ArrowLeft,
   Presentation as PresentationIcon,
   Play,
   ChevronLeft,
   ChevronRight,
-  Layers,
   MoreVertical,
   Image as ImageIcon,
   RefreshCw,
   X,
-  Maximize2,
-  Download,
   FileText,
   FileSpreadsheet,
   LogOut,
-  Sparkles
+
 } from "lucide-react";
 import Link from "next/link";
 import { Slide } from "@/lib/types";
@@ -112,27 +108,28 @@ function SlideshowContent() {
 
       presentation.slides.forEach((slide) => {
         const pptxSlide = pptx.addSlide();
+        pptxSlide.background = { color: "0B3153" };
 
         // Slide Title
         pptxSlide.addText(slide.title, {
-          x: 0.5,
-          y: 0.5,
-          w: "90%",
-          h: 0.8,
-          fontSize: 24,
+          x: 1.0,
+          y: 0.8,
+          w: slide.imgUrl ? "55%" : "80%",
+          h: 1.0,
+          fontSize: 26,
           bold: true,
-          color: "1A3300",
+          color: "38BDF8",
         });
 
         // Subtitle
         if (slide.subtitle) {
           pptxSlide.addText(slide.subtitle, {
-            x: 0.5,
-            y: 1.3,
-            w: "90%",
-            h: 0.5,
+            x: 1.0,
+            y: 1.8,
+            w: slide.imgUrl ? "55%" : "80%",
+            h: 0.6,
             fontSize: 14,
-            color: "556B2F",
+            color: "CBD5E1",
           });
         }
 
@@ -140,13 +137,13 @@ function SlideshowContent() {
         if (slide.content && slide.content.length > 0) {
           const bullets = slide.content.map((point) => ({
             text: point,
-            options: { bullet: true, fontSize: 13, color: "1A3300" },
+            options: { bullet: true, fontSize: 13, color: "E2E8F0" },
           }));
           pptxSlide.addText(bullets, {
-            x: 0.5,
-            y: 2.0,
-            w: slide.imgUrl ? "55%" : "90%",
-            h: 4.5,
+            x: 1.0,
+            y: 2.5,
+            w: slide.imgUrl ? "55%" : "80%",
+            h: 3.5,
           });
         }
 
@@ -155,9 +152,9 @@ function SlideshowContent() {
           pptxSlide.addImage({
             path: slide.imgUrl,
             x: 6.0,
-            y: 1.5,
-            w: 3.8,
-            h: 3.8,
+            y: 1.2,
+            w: 3.6,
+            h: 3.6,
           });
         }
       });

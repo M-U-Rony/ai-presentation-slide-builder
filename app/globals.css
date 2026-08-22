@@ -73,6 +73,15 @@ body {
   box-shadow: rgba(255, 235, 90, 0.08) 0px 20px 40px 0px, rgba(0, 0, 0, 0.04) 0px 4px 12px 0px;
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 @media print {
   @page {
     size: landscape;

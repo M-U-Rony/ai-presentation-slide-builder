@@ -318,45 +318,49 @@ export function LandingPage() {
 
           {/* Active Preview Card Stage */}
           <div className="max-w-3xl mx-auto">
-            <div className={`p-6 sm:p-10 rounded-[12px] border ${currentTheme.border} ${currentTheme.background} transition-all duration-200 shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] relative overflow-hidden`}>
-              
-              {/* Header */}
-              <div className="flex items-center justify-between mb-5">
-                <span className="text-xs font-mono-tag font-bold uppercase tracking-wider text-current opacity-80">
-                  {sampleSlides[activeTab].tag}
-                </span>
-                <span className="text-xs font-mono-tag font-medium text-current opacity-70">
-                  Slide {sampleSlides[activeTab].number} of {sampleSlides.length}
-                </span>
-              </div>
+            <div 
+              style={currentTheme.bgImage ? { backgroundImage: `url(${currentTheme.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+              className={`p-6 sm:p-10 rounded-[12px] border ${currentTheme.border} ${currentTheme.background} transition-all duration-200 shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] relative overflow-hidden`}
+            >
+              <div className={`rounded-[10px] ${currentTheme.cardBg} border border-current/15 p-6 sm:p-8 relative z-10 overflow-hidden`}>
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                  <span className="text-xs font-mono-tag font-bold uppercase tracking-wider text-current opacity-80">
+                    {sampleSlides[activeTab].tag}
+                  </span>
+                  <span className="text-xs font-mono-tag font-medium text-current opacity-70">
+                    Slide {sampleSlides[activeTab].number} of {sampleSlides.length}
+                  </span>
+                </div>
 
-              {/* Headline */}
-              <h3 className={`font-display text-2xl sm:text-3xl font-extrabold mb-2 tracking-[0.04em] leading-[1.15] [text-wrap:balance] ${currentTheme.primaryText}`}>
-                {sampleSlides[activeTab].title}
-              </h3>
-              <p className={`text-sm sm:text-base mb-6 font-normal ${currentTheme.secondaryText}`}>
-                {sampleSlides[activeTab].subtitle}
-              </p>
+                {/* Headline */}
+                <h3 className={`font-display text-2xl sm:text-3xl font-extrabold mb-2 tracking-[0.04em] leading-[1.15] [text-wrap:balance] ${currentTheme.primaryText}`}>
+                  {sampleSlides[activeTab].title}
+                </h3>
+                <p className={`text-sm sm:text-base mb-6 font-normal ${currentTheme.secondaryText}`}>
+                  {sampleSlides[activeTab].subtitle}
+                </p>
 
-              {/* Bullet Points */}
-              <div className="space-y-3">
-                {sampleSlides[activeTab].bullets.map((bullet, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3.5 rounded-[6px] bg-white/70 border border-[#1a3300]/15">
-                    <div className="w-5 h-5 rounded-full bg-[#1a3300] text-[#fcfaf5] flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
-                      <Check className="w-3 h-3" />
+                {/* Bullet Points */}
+                <div className="space-y-3">
+                  {sampleSlides[activeTab].bullets.map((bullet, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3.5 rounded-[6px] bg-white/70 border border-[#1a3300]/15">
+                      <div className="w-5 h-5 rounded-full bg-[#1a3300] text-[#fcfaf5] flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
+                        <Check className="w-3 h-3" />
+                      </div>
+                      <span className="text-xs sm:text-sm font-normal leading-relaxed text-[#1a3300]">
+                        {bullet}
+                      </span>
                     </div>
-                    <span className="text-xs sm:text-sm font-normal leading-relaxed text-[#1a3300]">
-                      {bullet}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              <div className="mt-8 pt-4 border-t border-current/15 flex items-center justify-between text-xs opacity-75">
-                <span className="flex items-center gap-1.5 font-semibold text-current">
-                  <Sparkles className="w-3.5 h-3.5" /> 16:9 Presentation Format
-                </span>
-                <span className="font-mono-tag text-[11px]">SlideAI Sketch Engine</span>
+                <div className="mt-8 pt-4 border-t border-current/15 flex items-center justify-between text-xs opacity-75">
+                  <span className="flex items-center gap-1.5 font-semibold text-current">
+                    <Sparkles className="w-3.5 h-3.5" /> 16:9 Presentation Format
+                  </span>
+                  <span className="font-mono-tag text-[11px]">SlideAI Sketch Engine</span>
+                </div>
               </div>
 
             </div>
