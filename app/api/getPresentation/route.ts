@@ -1,47 +1,64 @@
-import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
-export async function GET(req:NextRequest) {
+export async function GET(req: NextRequest) {
+  const searchParams = req.nextUrl.searchParams;
+  const id = searchParams.get("id");
 
-    const searchParams = req.nextUrl.searchParams;
-    const id = searchParams.get("id");
+  if (!id) {
+    return NextResponse.json(
+      { success: false, error: "Presentation ID is required" },
+      { status: 400 }
+    );
+  }
 
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-});
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
 
-    if(!id){
-        return NextResponse.json({
-            success: false,
-            error:"id required"
-        })
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized. Please sign in." },
+        { status: 401 }
+      );
     }
 
-    try {
+    const presentation = await prisma.presentation.findUnique({
+      where: { id },
+      include: {
+        slides: {
+          orderBy: { slidenumber: "asc" },
+        },
+      },
+    });
 
-        const presentation = await prisma.prsesentation.findFirst({
-            where: { id: Number(id) },
-            include: { slides: true },
-        })
-
-        if (!presentation) {
+    if (!presentation) {
       return NextResponse.json(
-        { error: "Presentation not found" },
+        { success: false, error: "Presentation not found" },
         { status: 404 }
       );
     }
+
+    // IDOR Protection: Verify that the requesting user owns this presentation
+    if (presentation.userId !== session.user.id) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: You do not have permission to view this presentation." },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       data: presentation,
     });
-        
-    } catch (error) {
-        console.error("Error fetching presentation:", error);
+  } catch (error) {
+    console.error("Error fetching presentation:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { success: false, error: "Internal Server Error" },
       { status: 500 }
     );
-    }
-    
+  }
 }

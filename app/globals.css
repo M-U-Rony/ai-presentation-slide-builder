@@ -84,28 +84,27 @@ body {
 
 @media print {
   @page {
-    size: landscape;
-    margin: 0;
+    size: 297mm 167.0625mm; /* 16:9 presentation slide aspect ratio */
+    margin: 0mm;
   }
 
-  /* CRITICAL: Unlock viewport height & overflow during print so all pages print */
-  html,
-  body,
-  #__next,
-  [data-nextjs-scroll-focus-boundary],
-  .h-screen,
-  .max-h-screen,
-  .overflow-hidden,
-  .overflow-y-auto {
-    height: auto !important;
-    max-height: none !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-    position: static !important;
-    background: #fcfaf5 !important;
-    color: #1a3300 !important;
+  /* Universal exact color reproduction across browsers */
+  *,
+  *::before,
+  *::after {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  /* Clean body setup during print */
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important;
+    background: transparent !important;
   }
 
   /* Hide screen UI elements during print */
@@ -123,28 +122,36 @@ body {
   .print-container {
     display: block !important;
     width: 100% !important;
-    height: auto !important;
-    position: relative !important;
-    background: #fcfaf5 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
+  /* Full-bleed 16:9 slide per page */
   .print-slide-page {
+    page-break-before: auto !important;
     page-break-after: always !important;
     break-after: page !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    min-height: 100vh !important;
-    max-height: 100vh !important;
+    width: 297mm !important;
+    height: 167.0625mm !important;
+    max-width: 297mm !important;
+    max-height: 167.0625mm !important;
+    min-height: 167.0625mm !important;
     display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 1.5rem !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
-    background: #fcfaf5 !important;
     position: relative !important;
     overflow: hidden !important;
+    background: transparent !important;
+  }
+
+  .print-slide-page:last-child,
+  .print-slide-page:last-of-type {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 }
 

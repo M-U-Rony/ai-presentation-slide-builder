@@ -1,28 +1,27 @@
 "use client";
 
 import SlideCard from "@/components/slidecard";
+import Navbar from "@/components/navbar";
 import { allThemes } from "@/lib/theme";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import {
   Loader2,
   Presentation as PresentationIcon,
-  Play,
   ChevronLeft,
   ChevronRight,
   MoreVertical,
   Image as ImageIcon,
   RefreshCw,
   X,
-  FileText,
   FileSpreadsheet,
-  LogOut,
+  FileText,
+  Play,
 } from "lucide-react";
 import Link from "next/link";
 import { Presentation } from "@/lib/types";
-import pptxgen from "pptxgenjs";
 import { authClient } from "@/lib/auth-client";
-import { SlideLayout } from "@/lib/slideLayouts";
+import { exportPresentationToPPTX } from "@/lib/pptxExport";
 
 function SlideshowContent() {
   const searchParams = useSearchParams();
@@ -36,27 +35,25 @@ function SlideshowContent() {
     }
   }, [session, isPending, router]);
 
-  const [presentation, setPresentation] = useState<Presentation | null>(
-    null,
-  );
+  const [presentation, setPresentation] = useState<Presentation | null>(null);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
-  const [isGeneratingImg, setIsGeneratingImg] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isGeneratingImg, setIsGeneratingImg] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Re-generate / generate image for current active slide
   async function generateImg() {
-    const currentSlide = presentation?.slides?.[activeSlideIndex];
-    if (!currentSlide) return;
+    if (!presentation || !presentation.slides?.length) return;
+    const currentSlide = presentation.slides[activeSlideIndex];
+    if (!currentSlide || !currentSlide.id) return;
 
     try {
       setIsGeneratingImg(true);
-      const res = await fetch(`/api/generateImg`, {
+      const res = await fetch("/api/generateImg", {
         method: "POST",
-        headers: {
-          "Content-type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slideId: currentSlide.id,
           title: currentSlide.title,
@@ -64,30 +61,20 @@ function SlideshowContent() {
         }),
       });
 
-      if (!res.ok) {
-        console.log("error in generating img");
-        return;
-      }
-
       const data = await res.json();
-      const rawImgUrl = data.image || data.slide?.imgUrl || data.imgUrl;
-
-      if (rawImgUrl && presentation) {
-        const newImgUrl = rawImgUrl.includes("?")
-          ? rawImgUrl
-          : `${rawImgUrl}?t=${Date.now()}`;
+      if (data.success && data.image) {
         setPresentation((prev) => {
-          if (!prev) return null;
+          if (!prev) return prev;
           const updatedSlides = [...prev.slides];
           updatedSlides[activeSlideIndex] = {
             ...updatedSlides[activeSlideIndex],
-            imgUrl: newImgUrl,
+            imgUrl: data.image,
           };
           return { ...prev, slides: updatedSlides };
         });
       }
     } catch (error) {
-      console.log(error);
+      console.error("Failed to generate image:", error);
     } finally {
       setIsGeneratingImg(false);
     }
@@ -98,75 +85,7 @@ function SlideshowContent() {
 
     try {
       setIsExporting(true);
-      const activeTheme =
-        allThemes.find((t) => t.id === presentation.themeColors) || allThemes[0];
-      const pptxColors = activeTheme.pptxColors || {
-        bg: "FCFAF5",
-        title: "1A3300",
-        subtitle: "3F4E34",
-        bullet: "2A4015",
-        accent: "CB5521",
-      };
-
-      const pptx = new pptxgen();
-      pptx.layout = "LAYOUT_16x9";
-
-      presentation.slides.forEach((slide) => {
-        const pptxSlide = pptx.addSlide();
-        pptxSlide.background = { color: pptxColors.bg };
-
-        // Slide Title
-        pptxSlide.addText(slide.title, {
-          x: 1.0,
-          y: 0.8,
-          w: slide.imgUrl ? "55%" : "80%",
-          h: 1.0,
-          fontSize: 26,
-          bold: true,
-          color: pptxColors.title,
-        });
-
-        // Subtitle
-        if (slide.subtitle) {
-          pptxSlide.addText(slide.subtitle, {
-            x: 1.0,
-            y: 1.8,
-            w: slide.imgUrl ? "55%" : "80%",
-            h: 0.6,
-            fontSize: 14,
-            color: pptxColors.subtitle,
-          });
-        }
-
-        // Bullet points
-        if (slide.content && slide.content.length > 0) {
-          const bullets = slide.content.map((point) => ({
-            text: point,
-            options: { bullet: true, fontSize: 13, color: pptxColors.bullet },
-          }));
-          pptxSlide.addText(bullets, {
-            x: 1.0,
-            y: 2.5,
-            w: slide.imgUrl ? "55%" : "80%",
-            h: 3.5,
-          });
-        }
-
-        // Image
-        if (slide.imgUrl) {
-          pptxSlide.addImage({
-            path: slide.imgUrl,
-            x: 6.0,
-            y: 1.2,
-            w: 3.6,
-            h: 3.6,
-          });
-        }
-      });
-
-      await pptx.writeFile({
-        fileName: `${presentation.title || "presentation"}.pptx`,
-      });
+      await exportPresentationToPPTX(presentation);
     } catch (error) {
       console.error("Failed to export PPTX:", error);
     } finally {
@@ -175,7 +94,15 @@ function SlideshowContent() {
   }
 
   function exportToPDF() {
+    if (!presentation) return;
+    const originalTitle = document.title;
+    if (presentation.title) {
+      document.title = presentation.title;
+    }
     window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
   }
 
   useEffect(() => {
@@ -205,6 +132,77 @@ function SlideshowContent() {
 
     getPresentation();
   }, [id]);
+
+  // Fullscreen presentation handlers
+  const enterFullscreen = () => {
+    setIsFullscreen(true);
+    try {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } catch (err) {
+      console.error("Fullscreen error:", err);
+    }
+  };
+
+  const exitFullscreen = () => {
+    setIsFullscreen(false);
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch (err) {
+      console.error("Exit fullscreen error:", err);
+    }
+  };
+
+  // Sync state if browser fullscreen changes (e.g. user pressed Escape)
+  useEffect(() => {
+    function handleFullscreenChange() {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
+    }
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  // Keyboard navigation for presentation & studio
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!presentation?.slides?.length) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
+
+      if (
+        e.key === "ArrowRight" ||
+        e.key === "PageDown" ||
+        (isFullscreen && (e.key === " " || e.key === "Enter"))
+      ) {
+        if (isFullscreen && (e.key === " " || e.key === "Enter"))
+          e.preventDefault();
+        setActiveSlideIndex((prev) =>
+          Math.min(presentation.slides.length - 1, prev + 1),
+        );
+      } else if (
+        e.key === "ArrowLeft" ||
+        e.key === "PageUp" ||
+        (isFullscreen && e.key === "Backspace")
+      ) {
+        if (isFullscreen && e.key === "Backspace") e.preventDefault();
+        setActiveSlideIndex((prev) => Math.max(0, prev - 1));
+      } else if (e.key === "Escape" && isFullscreen) {
+        exitFullscreen();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [presentation, isFullscreen]);
 
   const currentSlide = presentation?.slides?.[activeSlideIndex];
 
@@ -248,17 +246,17 @@ function SlideshowContent() {
       <div className="print-container">
         {presentation.slides.map((slide, idx) => (
           <div key={slide.id || idx} className="print-slide-page">
-            <div className="w-full max-w-[1200px] aspect-[16/9] shadow-none">
-              <SlideCard
-                theme={presentation.themeColors}
-                title={slide.title}
-                subtitle={slide.subtitle}
-                content={slide.content}
-                imgUrl={slide.imgUrl}
-                slideLayout={slide.slideLayout}
-                isSelected={false}
-              />
-            </div>
+            <SlideCard
+              theme={presentation.themeColors}
+              title={slide.title}
+              subtitle={slide.subtitle}
+              content={slide.content}
+              imgUrl={slide.imgUrl}
+              slideLayout={slide.slideLayout}
+              isSelected={false}
+              slideNumber={idx + 1}
+              isPrint={true}
+            />
           </div>
         ))}
       </div>
@@ -267,23 +265,25 @@ function SlideshowContent() {
       <div className="screen-wrapper no-print h-screen w-screen max-h-screen overflow-hidden bg-[#fcfaf5] text-[#1a3300] flex flex-col font-sans selection:bg-[#ffe95c] selection:text-[#1a3300] select-none">
         {/* FULLSCREEN PRESENTATION MODE OVERLAY */}
         {isFullscreen && currentSlide && (
-          <div className="fixed inset-0 z-[100] bg-[#1a3300] text-[#fcfaf5] flex flex-col items-center justify-center p-2 sm:p-6 animate-in fade-in duration-200 select-none">
-            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-3 z-50">
-              <span className="text-xs font-mono-tag text-[#1a3300] bg-[#ffe95c] px-3.5 py-1.5 rounded-[6px] font-bold">
-                Slide {activeSlideIndex + 1} / {presentation.slides.length}
+          <div className="fixed inset-0 z-[100] bg-[#0b0d10] text-white flex flex-col items-center justify-center animate-in fade-in duration-200 select-none">
+            {/* Top Right Presenter Status & Exit */}
+            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2.5 z-50">
+              <span className="text-xs font-mono font-bold text-white/90 bg-white/10 backdrop-blur-md border border-white/15 px-3 py-1.5 rounded-[6px]">
+                {activeSlideIndex + 1} / {presentation.slides.length}
               </span>
               <button
-                onClick={() => setIsFullscreen(false)}
-                className="p-2 rounded-[6px] bg-[#fcfaf5] text-[#1a3300] hover:bg-[#ffe95c] transition cursor-pointer"
-                title="Exit Slideshow"
+                onClick={exitFullscreen}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white transition cursor-pointer text-xs font-semibold"
+                title="Exit Presentation (Esc)"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
+                <span className="hidden sm:inline">Exit</span>
               </button>
             </div>
 
-            {/* Full Page Width & Height 16:9 Presentation Canvas Container */}
-            <div className="w-full h-full flex items-center justify-center p-2 sm:p-6 overflow-hidden">
-              <div className="w-full max-w-[1400px] h-full max-h-[85vh] flex items-center justify-center rounded-[12px] overflow-hidden">
+            {/* Presentation 16:9 Canvas Stage */}
+            <div className="w-full h-full flex items-center justify-center p-4 sm:p-8 md:p-12 overflow-hidden relative">
+              <div className="w-full max-w-[calc((100vh-100px)*16/9)] max-h-[calc(100vh-100px)] aspect-[16/9] shadow-2xl rounded-[12px] overflow-hidden relative flex flex-col justify-between">
                 <SlideCard
                   theme={presentation.themeColors}
                   slideLayout={currentSlide.slideLayout}
@@ -293,160 +293,49 @@ function SlideshowContent() {
                   imgUrl={currentSlide.imgUrl}
                   isGeneratingImg={isGeneratingImg}
                   isSelected={false}
+                  slideNumber={activeSlideIndex + 1}
                 />
               </div>
             </div>
 
-            {/* Fullscreen Navigation Controls */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#fcfaf5] text-[#1a3300] px-5 py-2 rounded-[6px] border border-[#1a3300] shadow-xl z-50">
+            {/* Bottom Floating Presenter Navigation Bar */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/70 backdrop-blur-lg text-white px-4 py-2 rounded-full border border-white/20 shadow-2xl z-50">
               <button
                 onClick={() =>
                   setActiveSlideIndex((prev) => Math.max(0, prev - 1))
                 }
                 disabled={activeSlideIndex === 0}
-                className="p-1.5 rounded-[4px] hover:bg-[#ffe95c] disabled:opacity-30 transition cursor-pointer"
+                className="p-1.5 rounded-full hover:bg-white/20 text-white disabled:opacity-25 transition cursor-pointer"
+                title="Previous Slide (← / Space)"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-xs font-mono-tag font-bold px-2">
-                {activeSlideIndex + 1} of {presentation.slides.length}
+
+              <span className="text-xs font-mono font-bold px-2 text-white/90">
+                Slide {activeSlideIndex + 1} of {presentation.slides.length}
               </span>
+
               <button
                 onClick={() =>
                   setActiveSlideIndex((prev) =>
                     Math.min(presentation.slides.length - 1, prev + 1),
                   )
                 }
-                disabled={activeSlideIndex === presentation.slides.length - 1}
-                className="p-1.5 rounded-[4px] hover:bg-[#ffe95c] disabled:opacity-30 transition cursor-pointer"
+                disabled={
+                  activeSlideIndex === presentation.slides.length - 1
+                }
+                className="p-1.5 rounded-full hover:bg-white/20 text-white disabled:opacity-25 transition cursor-pointer"
+                title="Next Slide (→ / Space / Enter)"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* ==================== UNIVERSAL TOP NAVBAR & STUDIO TOOLBAR ==================== */}
-        <header className="h-14 shrink-0 bg-[#fcfaf5] border-b border-[#b6b6b6] px-4 py-2 flex items-center justify-between gap-4 select-none">
-          {/* Left: Navigation Links & Presentation Title */}
-          <div className="flex items-center gap-3.5">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-7 h-7 rounded-[4px] bg-[#ffe95c] border border-[#1a3300]/20 text-[#1a3300] flex items-center justify-center font-display font-bold text-xs group-hover:scale-105 transition-transform">
-                lo
-              </div>
-              <span className="font-bold text-sm tracking-tight text-[#1a3300] hidden sm:inline">
-                SlideAI
-              </span>
-            </Link>
-
-            <div className="h-4 w-[1px] bg-[#b6b6b6]" />
-
-            <div className="flex items-center gap-2.5 text-xs font-medium text-[#1a3300]">
-              <Link
-                href="/"
-                className="hover:underline decoration-[#ffe95c] transition-all"
-              >
-                Home
-              </Link>
-              <Link
-                href="/dashboard"
-                className="hover:underline decoration-[#ffe95c] transition-all"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/create"
-                className="hover:underline decoration-[#ffe95c] transition-all"
-              >
-                Create
-              </Link>
-            </div>
-
-            <div className="h-4 w-[1px] bg-[#b6b6b6] hidden md:block" />
-
-            <h1 className="text-xs sm:text-sm font-display font-bold text-[#1a3300] line-clamp-1 hidden md:block">
-              {presentation.title}
-            </h1>
-          </div>
-
-          {/* Center: Slide Navigator Controls */}
-          <div className="flex items-center gap-1.5 bg-white border border-[#b6b6b6] rounded-[6px] px-2 py-0.5">
-            <button
-              onClick={() =>
-                setActiveSlideIndex((prev) => Math.max(0, prev - 1))
-              }
-              disabled={activeSlideIndex === 0}
-              className="p-1 rounded-[4px] hover:bg-[#ffe95c] text-[#1a3300] disabled:opacity-30 transition cursor-pointer"
-              title="Previous Slide"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="text-xs font-mono-tag font-bold text-[#1a3300] px-2 min-w-[65px] text-center select-none">
-              {activeSlideIndex + 1} / {presentation.slides.length}
-            </span>
-            <button
-              onClick={() =>
-                setActiveSlideIndex((prev) =>
-                  Math.min(presentation.slides.length - 1, prev + 1),
-                )
-              }
-              disabled={activeSlideIndex === presentation.slides.length - 1}
-              className="p-1 rounded-[4px] hover:bg-[#ffe95c] text-[#1a3300] disabled:opacity-30 transition cursor-pointer"
-              title="Next Slide"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Right: Export Buttons & Slideshow Present Button */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={exportToPPTX}
-              disabled={isExporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#ffe95c] border border-[#1a3300] disabled:bg-[#f1f1f1] text-[#1a3300] font-semibold text-xs rounded-[6px] transition cursor-pointer"
-              title="Export PowerPoint (.pptx)"
-            >
-              {isExporting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-              )}
-              <span className="hidden sm:inline">PPTX</span>
-            </button>
-
-            <button
-              onClick={exportToPDF}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#ffe95c] border border-[#1a3300] text-[#1a3300] font-semibold text-xs rounded-[6px] transition cursor-pointer"
-              title="Export PDF (All Slides)"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">PDF</span>
-            </button>
-
-            <button
-              onClick={() => setIsFullscreen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1a3300] hover:bg-[#1a3300]/90 text-[#fcfaf5] font-semibold text-xs rounded-[6px] transition shadow-xs cursor-pointer"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Present</span>
-            </button>
-
-            <button
-              onClick={async () => {
-                await authClient.signOut({
-                  fetchOptions: {
-                    onSuccess: () => {
-                      window.location.href = "/signin";
-                    },
-                  },
-                });
-              }}
-              className="p-1.5 rounded-[6px] border border-[#b6b6b6] text-[#1a3300]/70 hover:text-[#cb5521] hover:border-[#cb5521] transition flex items-center justify-center cursor-pointer"
-              title="Logout"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          </div>
+        {/* ==================== TOP NAVBAR STUDIO ZONE ==================== */}
+        <header className="w-full shrink-0 py-2.5 bg-[#fcfaf5] border-b border-[#b6b6b6] z-40">
+          <Navbar className="relative" />
         </header>
 
         {/* ==================== WORKSPACE ==================== */}
@@ -490,6 +379,7 @@ function SlideshowContent() {
                         imgUrl={slide.imgUrl}
                         isThumbnail={true}
                         isSelected={false}
+                        slideNumber={index + 1}
                       />
                     </div>
                   </div>
@@ -499,59 +389,135 @@ function SlideshowContent() {
           </aside>
 
           {/* CENTER MAIN STAGE */}
-          <main className="flex-1 h-full bg-[#f1f1f1] p-4 md:p-8 flex flex-col items-center justify-center overflow-auto relative">
-            <div className="w-full max-w-4xl shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] rounded-[12px] overflow-hidden border border-[#b6b6b6] transition-all duration-200 relative group bg-[#fcfaf5] shrink-0 my-auto">
-              {/* Options Dropdown Menu Button */}
-              <div className="absolute top-4 left-4 z-20">
-                <button
-                  onClick={() => setShowMenu((prev) => !prev)}
-                  className="p-2 rounded-[6px] bg-white/90 backdrop-blur-md hover:bg-white text-[#1a3300] border border-[#1a3300] shadow-xs transition flex items-center justify-center cursor-pointer"
-                  title="Slide Options"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
+          <main className="flex-1 h-full bg-[#f1f1f1] p-4 md:p-6 lg:p-8 flex flex-col items-center justify-between overflow-auto relative">
+            <div className="flex-1 w-full max-w-4xl flex items-center justify-center min-h-0">
+              <div className="w-full shadow-[rgba(0,0,0,0.06)_0px_2px_8px_0px] rounded-[12px] overflow-hidden border border-[#b6b6b6] transition-all duration-200 relative group bg-[#fcfaf5]">
+                {/* Options Dropdown Menu Button */}
+                <div className="absolute top-4 left-4 z-20">
+                  <button
+                    onClick={() => setShowMenu((prev) => !prev)}
+                    className="p-2 rounded-[6px] bg-white/90 backdrop-blur-md hover:bg-white text-[#1a3300] border border-[#1a3300] shadow-xs transition flex items-center justify-center cursor-pointer"
+                    title="Slide Options"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
 
-                {/* Dropdown Menu */}
-                {showMenu && (
-                  <div className="absolute top-11 left-0 w-48 bg-white border border-[#1a3300] rounded-[6px] shadow-lg p-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        generateImg();
-                      }}
-                      disabled={isGeneratingImg}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#1a3300] hover:bg-[#ffe95c] rounded-[4px] transition w-full text-left cursor-pointer disabled:opacity-50"
-                    >
-                      <ImageIcon className="w-4 h-4 text-[#1a3300]" />
-                      <span>Generate Visual</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        generateImg();
-                      }}
-                      disabled={isGeneratingImg}
-                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#1a3300] hover:bg-[#ffe95c] rounded-[4px] transition w-full text-left cursor-pointer disabled:opacity-50"
-                    >
-                      <RefreshCw className="w-4 h-4 text-[#1a3300]" />
-                      <span>Re-generate Image</span>
-                    </button>
-                  </div>
+                  {/* Dropdown Menu */}
+                  {showMenu && (
+                    <div className="absolute top-11 left-0 w-48 bg-white border border-[#1a3300] rounded-[6px] shadow-lg p-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          generateImg();
+                        }}
+                        disabled={isGeneratingImg}
+                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#1a3300] hover:bg-[#ffe95c] rounded-[4px] transition w-full text-left cursor-pointer disabled:opacity-50"
+                      >
+                        <ImageIcon className="w-4 h-4 text-[#1a3300]" />
+                        <span>Generate Visual</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          generateImg();
+                        }}
+                        disabled={isGeneratingImg}
+                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#1a3300] hover:bg-[#ffe95c] rounded-[4px] transition w-full text-left cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className="w-4 h-4 text-[#1a3300]" />
+                        <span>Re-generate Image</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {currentSlide && (
+                  <SlideCard
+                    theme={presentation.themeColors}
+                    title={currentSlide.title}
+                    slideLayout={currentSlide.slideLayout}
+                    subtitle={currentSlide.subtitle}
+                    content={currentSlide.content}
+                    imgUrl={currentSlide.imgUrl}
+                    isGeneratingImg={isGeneratingImg}
+                    isSelected={false}
+                    slideNumber={activeSlideIndex + 1}
+                  />
                 )}
               </div>
+            </div>
 
-              {currentSlide && (
-                <SlideCard
-                  theme={presentation.themeColors}
-                  title={currentSlide.title}
-                  slideLayout={currentSlide.slideLayout}
-                  subtitle={currentSlide.subtitle}
-                  content={currentSlide.content}
-                  imgUrl={currentSlide.imgUrl}
-                  isGeneratingImg={isGeneratingImg}
-                  isSelected={false}
-                />
-              )}
+            {/* BOTTOM SLIDE CONTROLS (DIRECTLY BELOW CENTER SLIDE) */}
+            <div className="shrink-0 pt-3 pb-2 flex items-center justify-center gap-3 select-none flex-wrap">
+              {/* Slide page switcher */}
+              <div className="flex items-center gap-1.5 bg-white border border-[#b6b6b6] rounded-[8px] px-2 py-1 shadow-xs">
+                <button
+                  onClick={() =>
+                    setActiveSlideIndex((prev) => Math.max(0, prev - 1))
+                  }
+                  disabled={activeSlideIndex === 0}
+                  className="p-1.5 rounded-[5px] hover:bg-[#ffe95c] text-[#1a3300] disabled:opacity-25 transition cursor-pointer"
+                  title="Previous Slide (←)"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <span className="text-xs font-mono-tag font-bold text-[#1a3300] px-3 min-w-[75px] text-center select-none">
+                  {activeSlideIndex + 1} / {presentation.slides.length}
+                </span>
+
+                <button
+                  onClick={() =>
+                    setActiveSlideIndex((prev) =>
+                      Math.min(presentation.slides.length - 1, prev + 1),
+                    )
+                  }
+                  disabled={
+                    activeSlideIndex === presentation.slides.length - 1
+                  }
+                  className="p-1.5 rounded-[5px] hover:bg-[#ffe95c] text-[#1a3300] disabled:opacity-25 transition cursor-pointer"
+                  title="Next Slide (→)"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="h-5 w-[1px] bg-[#b6b6b6] mx-0.5 hidden sm:block" />
+
+              {/* Action Buttons (PPTX, PDF, Present) */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportToPPTX}
+                  disabled={isExporting}
+                  className="min-h-[36px] px-3.5 py-1.5 rounded-[8px] border border-[#1a3300] bg-white hover:bg-[#ffe95c] disabled:bg-[#f1f1f1] text-[#1a3300] font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                  title="Export PowerPoint (.pptx)"
+                >
+                  {isExporting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                  )}
+                  <span>PPTX</span>
+                </button>
+
+                <button
+                  onClick={exportToPDF}
+                  className="min-h-[36px] px-3.5 py-1.5 rounded-[8px] border border-[#1a3300] bg-white hover:bg-[#ffe95c] text-[#1a3300] font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                  title="Export PDF (All Slides)"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>PDF</span>
+                </button>
+
+                <button
+                  onClick={enterFullscreen}
+                  className="min-h-[36px] px-4 py-1.5 rounded-[8px] bg-[#1a3300] hover:bg-[#1a3300]/90 text-[#fcfaf5] font-semibold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+                  title="Present Fullscreen"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Present</span>
+                </button>
+              </div>
             </div>
           </main>
         </div>

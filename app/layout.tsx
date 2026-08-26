@@ -21,8 +21,11 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SlideAI — AI Presentation & Slide Builder",
-  description: "Turn ideas, prompts, and notes into beautifully formatted presentation decks in seconds with AI themes and filmstrip editing.",
+  title: "SlideSpark — AI Presentation & Slide Builder",
+  description: "Turn ideas, prompts, and notes into beautifully formatted presentation decks in seconds with SlideSpark.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

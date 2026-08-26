@@ -49,25 +49,43 @@ export default function TitleBullets({
   }
 
   return (
-    <div className={`grid grid-cols-1 ${hasRightSide ? "md:grid-cols-12 gap-8" : "gap-6"} items-center h-full my-auto overflow-hidden`}>
+    <div
+      className={`grid ${
+        hasRightSide ? "grid-cols-12 gap-6 sm:gap-8" : "grid-cols-1 gap-6"
+      } items-center h-full my-auto overflow-hidden`}
+    >
       {/* Left Column: Slide Typography & Bullets */}
-      <div className={`${hasRightSide ? "md:col-span-7" : "col-span-full"} space-y-4 my-auto overflow-hidden`}>
-        <div className="space-y-2">
-          <h2 className={`font-display text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight leading-[1.12] [text-wrap:balance] ${theme.primaryText}`}>
+      <div
+        className={`${
+          hasRightSide ? "col-span-7" : "col-span-12"
+        } space-y-3.5 my-auto overflow-hidden`}
+      >
+        <div className="space-y-1.5">
+          <h2
+            className={`font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-[1.12] [text-wrap:balance] ${theme.primaryText}`}
+          >
             {data.title}
           </h2>
           {data.subtitle && (
-            <p className={`text-xs sm:text-sm md:text-base font-normal leading-relaxed ${theme.secondaryText}`}>
+            <p
+              className={`text-xs sm:text-sm lg:text-base font-normal leading-relaxed ${theme.secondaryText}`}
+            >
               {data.subtitle}
             </p>
           )}
         </div>
 
         {data.bullets && data.bullets.length > 0 && (
-          <div className="space-y-2.5 pt-3 border-t border-current/15">
+          <div className="space-y-2 pt-2.5 border-t border-current/15">
             {data.bullets.map((point, index) => (
-              <div key={index} className="flex items-start gap-3 text-xs sm:text-sm md:text-base leading-relaxed">
-                <span className={`w-2 h-2 rounded-full mt-2 shrink-0 opacity-80 ${theme.accentText}`} style={{ backgroundColor: "currentColor" }} />
+              <div
+                key={index}
+                className="flex items-start gap-2.5 text-xs sm:text-sm lg:text-base leading-relaxed"
+              >
+                <span
+                  className={`w-2 h-2 rounded-full mt-1.5 shrink-0 opacity-80 ${theme.accentText}`}
+                  style={{ backgroundColor: "currentColor" }}
+                />
                 <span className={theme.secondaryText}>{point}</span>
               </div>
             ))}
@@ -77,25 +95,29 @@ export default function TitleBullets({
 
       {/* Right Column: Slide Image Visual Container */}
       {hasRightSide && (
-        <div className="md:col-span-5 w-full flex items-center justify-center h-full my-auto overflow-hidden">
+        <div className="col-span-5 w-full flex items-center justify-center h-full my-auto overflow-hidden">
           {isGeneratingImg ? (
-            <div className="w-full h-44 md:h-52 rounded-[10px] bg-black/10 border border-dashed border-current/30 flex flex-col items-center justify-center p-4 text-center gap-2.5 animate-pulse">
+            <div className="w-full h-40 sm:h-48 md:h-56 rounded-[10px] bg-black/10 border border-dashed border-current/30 flex flex-col items-center justify-center p-4 text-center gap-2.5 animate-pulse">
               <div className={`p-2.5 rounded-full ${theme.accentBg}`}>
                 <Loader2 className="w-5 h-5 animate-spin" />
               </div>
               <div className="space-y-0.5">
-                <span className={`text-xs font-bold block ${theme.primaryText}`}>
+                <span
+                  className={`text-xs font-bold block ${theme.primaryText}`}
+                >
                   Generating Visual Illustration...
                 </span>
-                <span className={`text-[10px] ${theme.secondaryText}`}>Sketching artwork</span>
+                <span className={`text-[10px] ${theme.secondaryText}`}>
+                  Sketching artwork
+                </span>
               </div>
             </div>
           ) : data.imgUrl ? (
-            <div className="relative w-full overflow-hidden rounded-[10px] border border-current/20 shadow-md group/img max-h-52">
+            <div className="relative w-full overflow-hidden rounded-[10px] border border-current/20 shadow-md group/img max-h-56">
               <img
                 src={data.imgUrl}
                 alt={data.title}
-                className="w-full h-44 md:h-52 object-cover rounded-[10px] transition-transform duration-500 group-hover/img:scale-105"
+                className="w-full h-40 sm:h-48 md:h-56 object-cover rounded-[10px] transition-transform duration-500 group-hover/img:scale-105"
               />
             </div>
           ) : null}

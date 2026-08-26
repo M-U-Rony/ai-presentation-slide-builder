@@ -20,15 +20,7 @@ export interface ThemeColors {
     | "blueprint-grid"
     | "blush-dot"
     | "editorial-frame"
-    | "navy-chevron"
-    | "hexagon"
-    | "geometric-green"
-    | "framed-editorial"
-    | "minimal-aura"
-    | "memphis-blue"
-    | "corporate-capsule"
-    | "cyan-steps"
-    | "minimalist-orange";
+    | "navy-chevron";
   pptxColors?: {
     bg: string;
     title: string;

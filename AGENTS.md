@@ -11,9 +11,7 @@ This is an Ai presentation slide builder app like gamma.ai. Where user comes giv
 # Write the minimum that solves the problem.Nothing speculative.
 # Touch only what you must. Clean up only your own mess.
 # Never use bedge in ui  
-
-# Rules:-
-When I write Code this. Then Change the code in ide otherwise not. Keep the best practices and make the Ui responsive accross all the devices.
+# Keep the best practices and make the Ui responsive accross all the devices.
 
 ## Agent skills
 

@@ -22,7 +22,7 @@ export default function ProcessSteps({
       ? "grid-cols-2"
       : steps.length === 3
       ? "grid-cols-3"
-      : "grid-cols-2 md:grid-cols-4";
+      : "grid-cols-4";
 
   if (isThumbnail) {
     return (
@@ -61,43 +61,47 @@ export default function ProcessSteps({
     <div className="flex flex-col justify-between h-full space-y-4 my-auto overflow-hidden">
       {/* Header section */}
       <div className="space-y-1.5">
-        <h2 className={`font-display text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight leading-[1.15] [text-wrap:balance] ${theme.primaryText}`}>
+        <h2
+          className={`font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-[1.15] [text-wrap:balance] ${theme.primaryText}`}
+        >
           {data.title}
         </h2>
         {data.subtitle && (
-          <p className={`text-xs sm:text-sm md:text-base font-normal leading-relaxed ${theme.secondaryText}`}>
+          <p
+            className={`text-xs sm:text-sm lg:text-base font-normal leading-relaxed ${theme.secondaryText}`}
+          >
             {data.subtitle}
           </p>
         )}
       </div>
 
       {/* Process Steps Cards */}
-      <div className={`grid ${gridColsClass} gap-3 sm:gap-5 my-auto items-stretch`}>
+      <div className={`grid ${gridColsClass} gap-3 sm:gap-4 my-auto items-stretch`}>
         {steps.map((step, idx) => (
           <div
             key={idx}
-            className="p-4 sm:p-5 rounded-[12px] border border-current/15 bg-current/[0.03] flex flex-col justify-between relative group hover:bg-current/[0.06] transition-all shadow-xs"
+            className="p-3.5 sm:p-4 rounded-[12px] border border-current/15 bg-current/[0.03] flex flex-col justify-between relative group hover:bg-current/[0.06] transition-all shadow-xs overflow-hidden"
           >
             <div>
               {/* Step indicator header */}
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-2">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-xs shadow-xs ${theme.accentBg}`}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center font-mono font-bold text-xs shadow-xs ${theme.accentBg}`}
                 >
                   {step.stepNumber || idx + 1}
                 </div>
                 {idx < steps.length - 1 && (
-                  <ArrowRight className={`w-4 h-4 opacity-40 hidden md:block ${theme.secondaryText}`} />
+                  <ArrowRight className={`w-3.5 h-3.5 opacity-40 ${theme.secondaryText}`} />
                 )}
               </div>
 
               {/* Step title */}
-              <h3 className={`text-sm sm:text-base font-display font-bold leading-snug line-clamp-2 mb-1.5 ${theme.primaryText}`}>
+              <h3 className={`text-xs sm:text-sm font-display font-bold leading-snug line-clamp-2 mb-1 ${theme.primaryText}`}>
                 {step.title}
               </h3>
 
               {/* Step description */}
-              <p className={`text-xs sm:text-sm leading-relaxed line-clamp-3 ${theme.secondaryText}`}>
+              <p className={`text-[11px] sm:text-xs leading-relaxed line-clamp-3 opacity-80 ${theme.secondaryText}`}>
                 {step.description}
               </p>
             </div>

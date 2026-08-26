@@ -1,13 +1,14 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ArrowLeft, Plus, LogOut } from 'lucide-react';
-import { authClient } from '@/lib/auth-client';
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ArrowLeft, Plus, LogOut } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 
 interface NavbarProps {
   maxWidth?: string;
+  className?: string;
   showHome?: boolean;
   showDashboard?: boolean;
   showCreate?: boolean;
@@ -16,21 +17,24 @@ interface NavbarProps {
 }
 
 export default function Navbar({
-  maxWidth = 'max-w-6xl',
+  maxWidth = "max-w-6xl",
+  className = "sticky top-4 z-50",
   showHome,
   showDashboard,
   showCreate,
   showLogout,
-  children
+  children,
 }: NavbarProps) {
   const pathname = usePathname();
 
   // Determine smart defaults based on current path if not explicitly provided
-  const isDashboardPage = pathname === '/dashboard';
-  const isCreatePage = pathname === '/create';
-  
-  const shouldShowDashboard = showDashboard !== undefined ? showDashboard : !isDashboardPage;
-  const shouldShowCreate = showCreate !== undefined ? showCreate : !isCreatePage;
+  const isDashboardPage = pathname === "/dashboard";
+  const isCreatePage = pathname === "/create";
+
+  const shouldShowDashboard =
+    showDashboard !== undefined ? showDashboard : !isDashboardPage;
+  const shouldShowCreate =
+    showCreate !== undefined ? showCreate : !isCreatePage;
   const shouldShowHome = showHome !== undefined ? showHome : true;
   const shouldShowLogout = showLogout !== undefined ? showLogout : true;
 
@@ -39,28 +43,31 @@ export default function Navbar({
       await authClient.signOut({
         fetchOptions: {
           onSuccess: () => {
-            window.location.href = '/signin';
-          }
-        }
+            window.location.href = "/signin";
+          },
+        },
       });
     } catch (err) {
-      console.error('Sign out error:', err);
+      console.error("Sign out error:", err);
     }
   };
 
   return (
-    <div className={`sticky top-4 z-50 ${maxWidth} mx-auto w-full px-4 sm:px-6`}>
+    <div className={`${className} ${maxWidth} mx-auto w-full px-4 sm:px-6`}>
       <nav className="bg-[#fcfaf5] border border-[#b6b6b6] rounded-[16px] px-4 py-2.5 nav-glow flex items-center justify-between">
-        
         {/* Left: Brand Logo & Navigation */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-[6px] bg-[#ffe95c] border border-[#1a3300]/20 text-[#1a3300] flex items-center justify-center font-display font-extrabold text-lg shadow-xs group-hover:scale-105 transition-transform">
-              lo
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-[8px] overflow-hidden border border-[#1a3300]/20 shadow-xs group-hover:scale-105 transition-transform bg-[#ffe95c] shrink-0">
+              <img
+                src="/logo.jpg"
+                alt="SlideSpark Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-lg tracking-tight text-[#1a3300]">
-                SlideAI
+                SlideSpark
               </span>
             </div>
           </Link>
@@ -110,7 +117,6 @@ export default function Navbar({
 
           {children}
         </div>
-
       </nav>
     </div>
   );

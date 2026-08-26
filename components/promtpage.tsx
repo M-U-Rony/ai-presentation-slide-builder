@@ -95,16 +95,35 @@ export default function Promtpage({
           </div>
 
           {/* Custom Count Input */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono-tag text-[#1a3300]/80 font-medium">Custom:</span>
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={slidecnt}
-              onChange={(e) => setslidecnt(Math.max(1, Number(e.target.value)))}
-              className="w-16 min-h-[36px] px-2 py-1 bg-white text-[#1a3300] text-center font-bold text-xs rounded-[6px] border border-[#b6b6b6] focus:border-[#1a3300] outline-none"
-            />
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono-tag text-[#1a3300]/80 font-medium">Custom (Max 20):</span>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={slidecnt || ""}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setslidecnt(val);
+                }}
+                className={`w-16 min-h-[36px] px-2 py-1 bg-white text-[#1a3300] text-center font-bold text-xs rounded-[6px] border ${
+                  slidecnt > 20 || slidecnt < 1
+                    ? 'border-[#cb5521] ring-1 ring-[#cb5521]'
+                    : 'border-[#b6b6b6] focus:border-[#1a3300]'
+                } outline-none transition-colors`}
+              />
+            </div>
+            {slidecnt > 20 && (
+              <p className="text-[11px] font-semibold text-[#cb5521] animate-in fade-in duration-150">
+                ⚠️ At maximum 20 slides can be generated.
+              </p>
+            )}
+            {slidecnt < 1 && (
+              <p className="text-[11px] font-semibold text-[#cb5521] animate-in fade-in duration-150">
+                ⚠️ Minimum 1 slide required.
+              </p>
+            )}
           </div>
 
         </div>
@@ -112,7 +131,7 @@ export default function Promtpage({
         {/* Primary Submit Button */}
         <button
           type="submit"
-          disabled={loading || !promt.trim()}
+          disabled={loading || !promt.trim() || slidecnt > 20 || slidecnt < 1}
           className="w-full min-h-[48px] px-6 py-3.5 rounded-[6px] bg-[#1a3300] hover:bg-[#1a3300]/90 disabled:bg-[#b6b6b6] disabled:text-white disabled:cursor-not-allowed text-[#fcfaf5] font-semibold text-base flex items-center justify-center gap-2.5 shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] transition-all active:scale-[0.99] cursor-pointer"
         >
           {loading ? (
@@ -120,6 +139,8 @@ export default function Promtpage({
               <Loader2 className="w-5 h-5 animate-spin text-[#fcfaf5]" />
               <span>Generating Presentation Content...</span>
             </>
+          ) : slidecnt > 20 ? (
+            <span>Maximum 20 slides allowed</span>
           ) : (
             <>
               <span className="font-mono text-lg leading-none">→</span>

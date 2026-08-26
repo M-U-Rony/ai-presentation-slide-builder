@@ -36,6 +36,12 @@ export default function Create() {
         setloading(false);
         return;
       }
+
+      if (slidecnt > 20 || slidecnt < 1) {
+        alert("At maximum 20 slides can be generated.");
+        setloading(false);
+        return;
+      }
       
       const res = await fetch('/api/generateSlides', {
         method: "POST",

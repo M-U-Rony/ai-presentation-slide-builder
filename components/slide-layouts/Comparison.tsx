@@ -48,28 +48,40 @@ export default function Comparison({
     <div className="flex flex-col justify-between h-full space-y-4 my-auto overflow-hidden">
       {/* Header */}
       <div className="space-y-1.5">
-        <h2 className={`font-display text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight leading-[1.15] [text-wrap:balance] ${theme.primaryText}`}>
+        <h2
+          className={`font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-[1.15] [text-wrap:balance] ${theme.primaryText}`}
+        >
           {data.title}
         </h2>
         {data.subtitle && (
-          <p className={`text-xs sm:text-sm md:text-base font-normal leading-relaxed ${theme.secondaryText}`}>
+          <p
+            className={`text-xs sm:text-sm lg:text-base font-normal leading-relaxed ${theme.secondaryText}`}
+          >
             {data.subtitle}
           </p>
         )}
       </div>
 
       {/* Side-by-side comparison columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 my-auto items-stretch">
+      <div className="grid grid-cols-2 gap-4 sm:gap-6 my-auto items-stretch">
         {/* Left Column */}
-        <div className="p-5 sm:p-6 rounded-[12px] border border-current/15 bg-current/[0.03] flex flex-col justify-between space-y-3 shadow-xs">
-          <div className="space-y-2.5">
-            <h3 className={`text-base sm:text-lg font-display font-bold pb-2 border-b border-current/15 ${theme.primaryText}`}>
+        <div className="p-4 sm:p-5 md:p-6 rounded-[12px] border border-current/15 bg-current/[0.03] flex flex-col justify-between space-y-2.5 shadow-xs overflow-hidden">
+          <div className="space-y-2">
+            <h3
+              className={`text-sm sm:text-base md:text-lg font-display font-bold pb-2 border-b border-current/15 ${theme.primaryText}`}
+            >
               {data.leftColumn.title}
             </h3>
-            <ul className="space-y-2.5 pt-1">
+            <ul className="space-y-2 pt-1">
               {data.leftColumn.points.map((point, idx) => (
-                <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm md:text-base leading-relaxed">
-                  <span className={`w-2 h-2 rounded-full mt-2 shrink-0 opacity-80 ${theme.accentText}`} style={{ backgroundColor: "currentColor" }} />
+                <li
+                  key={idx}
+                  className="flex items-start gap-2.5 text-xs sm:text-sm leading-relaxed"
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full mt-1.5 shrink-0 opacity-80 ${theme.accentText}`}
+                    style={{ backgroundColor: "currentColor" }}
+                  />
                   <span className={theme.secondaryText}>{point}</span>
                 </li>
               ))}
@@ -78,15 +90,23 @@ export default function Comparison({
         </div>
 
         {/* Right Column */}
-        <div className="p-5 sm:p-6 rounded-[12px] border border-current/15 bg-current/[0.03] flex flex-col justify-between space-y-3 shadow-xs">
-          <div className="space-y-2.5">
-            <h3 className={`text-base sm:text-lg font-display font-bold pb-2 border-b border-current/15 ${theme.primaryText}`}>
+        <div className="p-4 sm:p-5 md:p-6 rounded-[12px] border border-current/15 bg-current/[0.03] flex flex-col justify-between space-y-2.5 shadow-xs overflow-hidden">
+          <div className="space-y-2">
+            <h3
+              className={`text-sm sm:text-base md:text-lg font-display font-bold pb-2 border-b border-current/15 ${theme.primaryText}`}
+            >
               {data.rightColumn.title}
             </h3>
-            <ul className="space-y-2.5 pt-1">
+            <ul className="space-y-2 pt-1">
               {data.rightColumn.points.map((point, idx) => (
-                <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm md:text-base leading-relaxed">
-                  <span className={`w-2 h-2 rounded-full mt-2 shrink-0 opacity-80 ${theme.accentText}`} style={{ backgroundColor: "currentColor" }} />
+                <li
+                  key={idx}
+                  className="flex items-start gap-2.5 text-xs sm:text-sm leading-relaxed"
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full mt-1.5 shrink-0 opacity-80 ${theme.accentText}`}
+                    style={{ backgroundColor: "currentColor" }}
+                  />
                   <span className={theme.secondaryText}>{point}</span>
                 </li>
               ))}

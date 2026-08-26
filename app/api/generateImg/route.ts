@@ -1,15 +1,10 @@
 import { OpenRouter } from '@openrouter/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { prisma } from '@/lib/prisma';
 import { Slide } from '@/lib/types';
 import path from 'path';
 import fs from 'fs/promises';
 import crypto from 'crypto';
-
-const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
-});
 
 function extractImageString(img: any): string | null {
     if (!img) return null;
@@ -124,7 +119,7 @@ PHOTOREALISM & AESTHETIC DIRECTIVES:
 
         const updatedSlide = await prisma.slide.update({
             where: {
-                id: Number(slideId)
+                id: String(slideId)
             },
             data: {
                 imgUrl: publicImgUrl

@@ -81,11 +81,15 @@ export default function SignUp() {
       {/* FLOATING TOP HEADER NAVIGATION */}
       <div className="sticky top-4 z-50 max-w-5xl mx-auto w-full px-4 sm:px-6">
         <header className="bg-[#fcfaf5] border border-[#b6b6b6] rounded-[16px] px-4 py-2.5 nav-glow flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-[6px] bg-[#ffe95c] border border-[#1a3300]/20 text-[#1a3300] flex items-center justify-center font-display font-extrabold text-lg shadow-xs group-hover:scale-105 transition-transform">
-              lo
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-[8px] overflow-hidden border border-[#1a3300]/20 shadow-xs group-hover:scale-105 transition-transform bg-[#ffe95c] shrink-0">
+              <img
+                src="/logo.jpg"
+                alt="SlideSpark Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <span className="font-bold text-lg tracking-tight text-[#1a3300]">SlideAI</span>
+            <span className="font-bold text-lg tracking-tight text-[#1a3300]">SlideSpark</span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -268,7 +272,7 @@ export default function SignUp() {
 
       {/* FOOTER */}
       <footer className="py-6 text-center text-xs text-[#1a3300]/60 font-mono-tag">
-        SlideAI Presentation Studio — SayBriefly Design System
+        SlideSpark Presentation Studio — SayBriefly Design System
       </footer>
     </div>
   );

@@ -2,23 +2,23 @@ generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
 }
+
 datasource db {
   provider = "postgresql"
 }
 
 model User {
-  id            String          @id
+  id            String         @id
   name          String?
-  email         String          @unique
-  emailVerified Boolean         @default(false)
+  email         String         @unique
+  emailVerified Boolean        @default(false)
   image         String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @default(now()) @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
   sessions      Session[]
   accounts      Account[]
-  presentations Prsesentation[]
+  presentations Presentation[]
 }
-
 
 model Session {
   id        String   @id
@@ -31,6 +31,7 @@ model Session {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 model Account {
   id                    String    @id
   userId                String
@@ -49,34 +50,37 @@ model Account {
   updatedAt             DateTime  @updatedAt
 }
 
-model Prsesentation {
-  id Int @id @default(autoincrement())
-  title String
-  totalSlides  Int
+model Presentation {
+  id          String   @id @default(cuid())
+  title       String
+  totalSlides Int
   themeColors String
-  userId String
-  user  User  @relation(fields: [userId],references: [id])
-  slides Slide[]
- 
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slides      Slide[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 }
 
 model Slide {
-  id  Int @id @default(autoincrement())
-  title String
-  subtitle String
-  imgUrl String?
-  slidenumber Int
-  slideLayout String?
-  content String[]
-  presentationId Int
-  presentation Prsesentation @relation(fields: [presentationId],references: [id])
+  id             String       @id @default(cuid())
+  title          String
+  subtitle       String
+  imgUrl         String?
+  slidenumber    Int
+  slideLayout    String?
+  content        String[]
+  presentationId String
+  presentation   Presentation @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
 }
 
 model verification {
-	id         String   @id
-	identifier String
-	value      String
-	expiresAt  DateTime
-	createdAt  DateTime @default(now())
-	updatedAt  DateTime @updatedAt
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

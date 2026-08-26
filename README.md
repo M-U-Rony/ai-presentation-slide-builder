@@ -1,6 +1,6 @@
-# 🎨 SlideAI — AI Presentation & Slide Builder
+# 🎨 SlideSpark — AI Presentation & Slide Builder
 
-**SlideAI** is a modern, AI-powered presentation builder application inspired by Gamma.ai. It allows users to convert raw topic prompts or outline notes into beautifully formatted 16:9 presentation slide decks with visual layouts, filmstrip navigation, textless AI artwork generation, and native PPTX/PDF exports.
+**SlideSpark** is a modern, AI-powered presentation builder application inspired by Gamma.ai. It allows users to convert raw topic prompts or outline notes into beautifully formatted 16:9 presentation slide decks with visual layouts, filmstrip navigation, textless AI artwork generation, and native PPTX/PDF exports.
 
 ---
 

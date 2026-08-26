@@ -1,31 +1,31 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import Navbar from '@/components/navbar';
-import { 
-  Presentation, 
-  Sparkles, 
-  History, 
-  Layers, 
-  Loader2, 
-  Clock, 
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Navbar from "@/components/navbar";
+import {
+  Presentation,
+  Sparkles,
+  History,
+  Layers,
+  Loader2,
+  Clock,
   ArrowRight,
   Palette,
   ChevronRight,
-  Lightbulb
-} from 'lucide-react';
-import { allThemes } from '@/lib/theme';
-import { Slide } from '@/lib/types';
-import { authClient } from '@/lib/auth-client';
+  Lightbulb,
+} from "lucide-react";
+import { allThemes } from "@/lib/theme";
+import { Slide } from "@/lib/types";
+import { authClient } from "@/lib/auth-client";
 
 interface PresentationItem {
-  id: number;
+  id: string;
   title: string;
   totalSlides: number;
   themeColors: string;
-  userId: number;
+  userId: string;
   slides?: Slide[];
 }
 
@@ -41,12 +41,18 @@ export default function Dashboard() {
     }
   }, [session, isPending, router]);
 
+  const userId = session?.user?.id;
+
   useEffect(() => {
+    if (!userId) {
+      if (!isPending) setLoading(false);
+      return;
+    }
+
     async function fetchPresentations() {
       try {
         setLoading(true);
-        // Using userId = 1 as specified in TASK.md
-        const res = await fetch('/api/getUserPresentations?userId=1');
+        const res = await fetch("/api/getUserPresentations");
         if (!res.ok) {
           console.error("Failed to fetch user presentations");
           setLoading(false);
@@ -64,17 +70,15 @@ export default function Dashboard() {
     }
 
     fetchPresentations();
-  }, []);
+  }, [userId, isPending]);
 
   return (
     <div className="min-h-screen bg-[#fcfaf5] text-[#1a3300] font-sans selection:bg-[#ffe95c] selection:text-[#1a3300] flex flex-col">
-      
       {/* ==================== FLOATING NAVIGATION BAR ==================== */}
       <Navbar />
 
       {/* ==================== MAIN DASHBOARD CONTENT ==================== */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
-        
         {/* TOP HERO SECTION */}
         <div className="p-6 sm:p-8 rounded-[12px] bg-[#ffe95c] border border-[#1a3300] shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="space-y-1.5 max-w-xl z-10">
@@ -82,7 +86,8 @@ export default function Dashboard() {
               Your Presentation Decks
             </h1>
             <p className="text-[#1a3300]/80 text-xs sm:text-sm leading-relaxed">
-              Generate new slide presentations or resume editing your saved presentation decks below.
+              Generate new slide presentations or resume editing your saved
+              presentation decks below.
             </p>
           </div>
 
@@ -108,7 +113,8 @@ export default function Dashboard() {
               </h2>
             </div>
             <span className="text-xs font-mono-tag text-[#1a3300] bg-white px-3 py-1 rounded-[6px] border border-[#b6b6b6]">
-              {presentations.length} {presentations.length === 1 ? 'Deck' : 'Decks'} Saved
+              {presentations.length}{" "}
+              {presentations.length === 1 ? "Deck" : "Decks"} Saved
             </span>
           </div>
 
@@ -116,7 +122,9 @@ export default function Dashboard() {
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-3 text-[#1a3300]/70">
               <Loader2 className="w-7 h-7 animate-spin text-[#1a3300]" />
-              <p className="text-xs sm:text-sm font-semibold">Fetching your deck history...</p>
+              <p className="text-xs sm:text-sm font-semibold">
+                Fetching your deck history...
+              </p>
             </div>
           ) : presentations.length === 0 ? (
             /* EMPTY STATE */
@@ -125,9 +133,12 @@ export default function Dashboard() {
                 <Presentation className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-display text-lg font-bold text-[#1a3300]">No Presentations Found</h3>
+                <h3 className="font-display text-lg font-bold text-[#1a3300]">
+                  No Presentations Found
+                </h3>
                 <p className="text-[#1a3300]/70 text-xs leading-relaxed">
-                  You haven't generated any slide presentations yet. Click below to build your first deck!
+                  You haven't generated any slide presentations yet. Click below
+                  to build your first deck!
                 </p>
               </div>
               <Link
@@ -142,7 +153,9 @@ export default function Dashboard() {
             /* PRESENTATION HISTORY GRID */
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {presentations.map((item) => {
-                const theme = allThemes.find((t) => t.id === item.themeColors) || allThemes[0];
+                const theme =
+                  allThemes.find((t) => t.id === item.themeColors) ||
+                  allThemes[0];
                 const firstSlide = item.slides?.[0];
 
                 return (
@@ -152,22 +165,29 @@ export default function Dashboard() {
                     className="group cursor-pointer rounded-[12px] bg-white border border-[#b6b6b6] hover:border-[#1a3300] transition-all duration-200 p-4 shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] flex flex-col justify-between space-y-3 hover:scale-[1.01] select-none"
                   >
                     {/* Visual Card Preview Window */}
-                    <div className={`w-full h-40 rounded-[8px] ${theme.background} border ${theme.border} p-3 flex flex-col justify-between overflow-hidden relative transition-transform duration-200 group-hover:scale-[1.01]`}>
+                    <div
+                      className={`w-full h-40 rounded-[8px] ${theme.background} border ${theme.border} p-3 flex flex-col justify-between overflow-hidden relative transition-transform duration-200 group-hover:scale-[1.01]`}
+                    >
                       <div className="flex items-center justify-between text-[10px] font-bold">
                         <span className="font-mono-tag text-[10px] uppercase font-bold opacity-80">
                           {theme.name}
                         </span>
                         <span className="flex items-center gap-1 font-mono-tag text-current opacity-80">
-                          <Layers className="w-3 h-3" /> {item.totalSlides} slides
+                          <Layers className="w-3 h-3" /> {item.totalSlides}{" "}
+                          slides
                         </span>
                       </div>
 
                       <div className="space-y-1 my-auto">
-                        <h4 className={`font-display text-xs sm:text-sm font-bold line-clamp-2 leading-tight ${theme.primaryText}`}>
+                        <h4
+                          className={`font-display text-xs sm:text-sm font-bold line-clamp-2 leading-tight ${theme.primaryText}`}
+                        >
                           {firstSlide?.title || item.title}
                         </h4>
                         {firstSlide?.subtitle && (
-                          <p className={`text-[10px] line-clamp-1 opacity-80 ${theme.secondaryText}`}>
+                          <p
+                            className={`text-[10px] line-clamp-1 opacity-80 ${theme.secondaryText}`}
+                          >
                             {firstSlide.subtitle}
                           </p>
                         )}
@@ -196,9 +216,7 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-
       </main>
-
     </div>
   );
 }

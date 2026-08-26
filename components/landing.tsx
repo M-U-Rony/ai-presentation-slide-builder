@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
+import SlideCard from '@/components/slidecard';
 import { 
   Sparkles, 
   Presentation, 
@@ -14,16 +15,16 @@ import {
   CheckCircle2, 
   Sliders, 
   Zap, 
-  ChevronRight,
-  Monitor,
-  Layout,
-  Image as ImageIcon,
-  Compass,
-  Check,
-  LogIn,
-  Lightbulb,
-  FileSpreadsheet,
-  FileText
+  ChevronRight, 
+  Monitor, 
+  Layout, 
+  Image as ImageIcon, 
+  Compass, 
+  Check, 
+  LogIn, 
+  Lightbulb, 
+  FileSpreadsheet, 
+  FileText 
 } from 'lucide-react';
 import { displayThemes, ThemeColors } from '@/lib/theme';
 
@@ -37,54 +38,57 @@ export function LandingPage() {
     }
   }, [session, isPending, router]);
 
-  const [prompt, setPrompt] = useState('Create a 5-slide pitch deck for an AI-powered personal productivity app');
-  const [slideCount, setSlideCount] = useState(5);
   const [activeTab, setActiveTab] = useState(0);
   const [selectedThemeId, setSelectedThemeId] = useState('cream-sketchbook');
-
-  const handleGenerate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim()) return;
-    router.push(`/create?prompt=${encodeURIComponent(prompt)}&slides=${slideCount}&theme=${selectedThemeId}`);
-  };
 
   const sampleSlides = [
     {
       number: 1,
+      tag: "Intro",
+      slideLayout: "IntroSlide",
       title: "The Productivity Crisis in Modern Work",
       subtitle: "Why knowledge workers lose 3.5 hours daily to digital clutter & context switching",
-      bullets: [
+      content: [
         "78% of workers report feeling overwhelmed by fragmented SaaS tools",
-        "Scattered docs lead to missed deadlines and burnt-out creative teams",
-        "Legacy presentation builders require tedious manual alignment"
+        "Scattered documentation leads to missed deadlines and burnt-out teams",
       ],
-      tag: "Problem Statement"
     },
     {
       number: 2,
-      title: "Introducing FlowAI: Context-Aware Slides",
-      subtitle: "Autonomous presentation orchestration powered by generative intelligence",
-      bullets: [
-        "Automatically writes titles, structured bullets & layout cards",
-        "1-click exports to PowerPoint PPTX & crisp landscape PDF",
-        "Sketchbook and moodboard aesthetic presets tailored for creative minds"
+      tag: "Metrics",
+      slideLayout: "StatGrid",
+      title: "Key Performance & Time Savings",
+      subtitle: "Measurable impact across 10,000+ early adopters",
+      content: [
+        "10x Faster Deck Creation",
+        "99.8% Presentation Readiness",
+        "3.5 hrs Saved Per Week",
       ],
-      tag: "The Solution"
     },
     {
       number: 3,
-      title: "Market Opportunity & Growth Projection",
-      subtitle: "Capturing the $42B presentation and workflow automation market",
-      bullets: [
-        "TAM: $42B global presentation ecosystem growing at 24% CAGR",
-        "Initial Target: 50M founders, agencies, and knowledge creators",
-        "Freemium conversion strategy with team workspace collaboration"
+      tag: "Process",
+      slideLayout: "ProcessSteps",
+      title: "How SlideSpark Works",
+      subtitle: "From rough concept to pitch-ready slides in three seamless steps",
+      content: [
+        "1. Input Prompt or Outline",
+        "2. AI Structures Cards & Layouts",
+        "3. Export PPTX or Present Live",
       ],
-      tag: "Business Model"
-    }
+    },
+    {
+      number: 4,
+      tag: "Comparison",
+      slideLayout: "Comparison",
+      title: "Old Way vs SlideSpark",
+      subtitle: "Rethinking presentation authoring from first principles",
+      content: [
+        "Traditional: Hours tweaking box alignments, messy formatting",
+        "SlideSpark: Intelligent cards, automated aesthetic themes, instant export",
+      ],
+    },
   ];
-
-  const currentTheme = displayThemes.find(t => t.id === selectedThemeId) || displayThemes[0];
 
   return (
     <div className="min-h-screen bg-[#fcfaf5] text-[#1a3300] font-sans antialiased selection:bg-[#ffe95c] selection:text-[#1a3300]">
@@ -93,22 +97,24 @@ export function LandingPage() {
       <div className="sticky top-4 z-50 max-w-5xl mx-auto px-4 sm:px-6">
         <nav className="bg-[#fcfaf5] border border-[#b6b6b6] rounded-[16px] px-3 sm:px-5 py-2.5 nav-glow flex items-center justify-between transition-all">
           
-          {/* Logo Mark: 40x40 #ffe95c square with hand-drawn monogram + 'SlideAI' Inter 700 20px in Forest Ink */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-[6px] bg-[#ffe95c] border border-[#1a3300]/20 text-[#1a3300] flex items-center justify-center font-display font-extrabold text-lg shadow-xs group-hover:scale-105 transition-transform">
-              lo
+          {/* Logo Mark */}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-[8px] overflow-hidden border border-[#1a3300]/20 shadow-xs group-hover:scale-105 transition-transform bg-[#ffe95c] shrink-0">
+              <img
+                src="/logo.jpg"
+                alt="SlideSpark Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-lg sm:text-xl tracking-tight text-[#1a3300]">
-                SlideAI
+                SlideSpark
               </span>
             </div>
           </Link>
 
           {/* Centered Nav Links (Inter 500, 14px in Forest Ink) */}
           <div className="hidden md:flex items-center gap-7 font-medium text-sm text-[#1a3300]">
-            <a href="#hero-prompt" className="hover:underline underline-offset-4 decoration-[#ffe95c] decoration-2 transition-all">Generator</a>
-            <Link href="/dashboard" className="hover:underline underline-offset-4 decoration-[#ffe95c] decoration-2 transition-all">Dashboard</Link>
             <a href="#interactive-preview" className="hover:underline underline-offset-4 decoration-[#ffe95c] decoration-2 transition-all">Themes</a>
             <a href="#how-it-works" className="hover:underline underline-offset-4 decoration-[#ffe95c] decoration-2 transition-all">Workflow</a>
             <a href="#features" className="hover:underline underline-offset-4 decoration-[#ffe95c] decoration-2 transition-all">Features</a>
@@ -137,10 +143,10 @@ export function LandingPage() {
       </div>
 
       {/* ==================== HERO SECTION ==================== */}
-      <section id="hero-prompt" className="relative pt-12 pb-20 md:pt-18 md:pb-28 overflow-hidden">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 text-center">
+      <section id="hero-prompt" className="relative pt-12 pb-16 md:pt-16 md:pb-24 overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10 text-center">
 
-          {/* Main Display Headline (Bricolage Grotesque 800 with yellow marker wash) */}
+          {/* Main Display Headline */}
           <h1 className="font-display text-4xl sm:text-6xl md:text-7xl font-extrabold text-[#1a3300] tracking-[0.04em] leading-[1.05] mb-6 [text-wrap:balance]">
             Turn raw ideas into <br />
             <span className="bg-[#ffe95c] px-2.5 py-0.5 rounded-[4px] inline-block shadow-xs">
@@ -148,10 +154,30 @@ export function LandingPage() {
             </span>
           </h1>
 
-          {/* Subhead Paragraph (Inter 400 at 18-20px, max-width ~600px) */}
-          <p className="text-base sm:text-lg md:text-[19px] text-[#1a3300]/80 max-w-[600px] mx-auto mb-10 leading-relaxed font-normal [text-wrap:balance]">
-            Type your presentation topic or paste bullet notes. SlideAI structures titles, content cards, and sketchbook themes in seconds.
+          {/* Subhead Paragraph */}
+          <p className="text-base sm:text-lg md:text-[19px] text-[#1a3300]/80 max-w-[620px] mx-auto mb-8 leading-relaxed font-normal [text-wrap:balance]">
+            Type your presentation topic or paste bullet notes. SlideSpark structures titles, content cards, and sketchbook themes in seconds.
           </p>
+
+          {/* Hero CTA Button */}
+          <div className="flex items-center justify-center gap-3 mb-12">
+            <Link
+              href="/create"
+              className="min-h-[44px] px-6 py-2.5 rounded-[8px] bg-[#1a3300] hover:bg-[#1a3300]/90 text-[#fcfaf5] font-semibold text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer"
+            >
+              <span>Start Building Free</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {/* Hero Image Showcase */}
+          <div className="relative max-w-4xl mx-auto rounded-[12px] overflow-hidden border border-[#b6b6b6] shadow-[0_12px_36px_rgba(26,51,0,0.12)] bg-[#fcfaf5]">
+            <img
+              src="/hero.jpg"
+              alt="SlideSpark Presentation Studio Interface"
+              className="w-full h-auto object-cover block"
+            />
+          </div>
 
         </div>
       </section>
@@ -162,26 +188,26 @@ export function LandingPage() {
           
           <div className="text-center max-w-2xl mx-auto mb-10">
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#1a3300] tracking-[0.04em]">
-              Sketchbook Card Layouts
+              Sketchbook Card Layouts & Themes
             </h2>
             <p className="mt-2 text-[#1a3300]/70 text-sm sm:text-base">
-              Explore how SlideAI structures presentation cards across pastel sticky-note aesthetics.
+              Explore how SlideSpark structures presentation cards across our curated sketchbook aesthetic palettes.
             </p>
           </div>
 
-          {/* Theme Switcher Bar */}
+          {/* Actual Themes Switcher Bar */}
           <div className="flex items-center justify-center gap-2 mb-6 flex-wrap">
             {displayThemes.map((theme) => (
               <button
                 key={theme.id}
                 onClick={() => setSelectedThemeId(theme.id)}
-                className={`min-h-[36px] px-3.5 py-1 rounded-[6px] text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                className={`min-h-[36px] px-3.5 py-1.5 rounded-[8px] text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer border ${
                   selectedThemeId === theme.id
-                    ? 'bg-[#1a3300] text-[#fcfaf5] border-[#1a3300] shadow-xs'
+                    ? 'bg-[#1a3300] text-[#fcfaf5] border-[#1a3300] shadow-sm'
                     : 'bg-white text-[#1a3300] border-[#b6b6b6] hover:bg-[#ffe95c]'
                 }`}
               >
-                <span className={`w-2.5 h-2.5 rounded-full ${theme.swatch}`} />
+                <span className={`w-3 h-3 rounded-full ${theme.swatch}`} />
                 <span>{theme.name}</span>
               </button>
             ))}
@@ -193,7 +219,7 @@ export function LandingPage() {
               <button
                 key={slide.number}
                 onClick={() => setActiveTab(idx)}
-                className={`min-h-[36px] px-4 py-1.5 rounded-[6px] text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer border ${
+                className={`min-h-[36px] px-4 py-1.5 rounded-[8px] text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer border ${
                   activeTab === idx
                     ? 'bg-[#ffe95c] text-[#1a3300] border-[#1a3300] font-bold'
                     : 'bg-white text-[#1a3300]/80 border-[#b6b6b6] hover:border-[#1a3300]'
@@ -205,54 +231,17 @@ export function LandingPage() {
             ))}
           </div>
 
-          {/* Active Preview Card Stage */}
-          <div className="max-w-3xl mx-auto">
-            <div 
-              style={currentTheme.bgImage ? { backgroundImage: `url(${currentTheme.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-              className={`p-6 sm:p-10 rounded-[12px] border ${currentTheme.border} ${currentTheme.background} transition-all duration-200 shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] relative overflow-hidden`}
-            >
-              <div className={`rounded-[10px] ${currentTheme.cardBg} border border-current/15 p-6 sm:p-8 relative z-10 overflow-hidden`}>
-                {/* Header */}
-                <div className="flex items-center justify-between mb-5">
-                  <span className="text-xs font-mono-tag font-bold uppercase tracking-wider text-current opacity-80">
-                    {sampleSlides[activeTab].tag}
-                  </span>
-                  <span className="text-xs font-mono-tag font-medium text-current opacity-70">
-                    Slide {sampleSlides[activeTab].number} of {sampleSlides.length}
-                  </span>
-                </div>
-
-                {/* Headline */}
-                <h3 className={`font-display text-2xl sm:text-3xl font-extrabold mb-2 tracking-[0.04em] leading-[1.15] [text-wrap:balance] ${currentTheme.primaryText}`}>
-                  {sampleSlides[activeTab].title}
-                </h3>
-                <p className={`text-sm sm:text-base mb-6 font-normal ${currentTheme.secondaryText}`}>
-                  {sampleSlides[activeTab].subtitle}
-                </p>
-
-                {/* Bullet Points */}
-                <div className="space-y-3">
-                  {sampleSlides[activeTab].bullets.map((bullet, i) => (
-                    <div key={i} className="flex items-start gap-3 p-3.5 rounded-[6px] bg-white/70 border border-[#1a3300]/15">
-                      <div className="w-5 h-5 rounded-full bg-[#1a3300] text-[#fcfaf5] flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
-                        <Check className="w-3 h-3" />
-                      </div>
-                      <span className="text-xs sm:text-sm font-normal leading-relaxed text-[#1a3300]">
-                        {bullet}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-8 pt-4 border-t border-current/15 flex items-center justify-between text-xs opacity-75">
-                  <span className="flex items-center gap-1.5 font-semibold text-current">
-                    <Sparkles className="w-3.5 h-3.5" /> 16:9 Presentation Format
-                  </span>
-                  <span className="font-mono-tag text-[11px]">SlideAI Sketch Engine</span>
-                </div>
-              </div>
-
-            </div>
+          {/* Active Preview Card Stage using real SlideCard */}
+          <div className="max-w-3xl mx-auto shadow-xl rounded-[12px] overflow-hidden border border-[#b6b6b6]">
+            <SlideCard
+              theme={selectedThemeId}
+              slideLayout={sampleSlides[activeTab].slideLayout}
+              title={sampleSlides[activeTab].title}
+              subtitle={sampleSlides[activeTab].subtitle}
+              content={sampleSlides[activeTab].content}
+              slideNumber={sampleSlides[activeTab].number}
+              isSelected={false}
+            />
           </div>
 
         </div>
@@ -264,7 +253,7 @@ export function LandingPage() {
           
           <div className="text-center max-w-2xl mx-auto mb-14">
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#1a3300] tracking-[0.04em]">
-              How SlideAI Works
+              How SlideSpark Works
             </h2>
           </div>
 
@@ -329,75 +318,78 @@ export function LandingPage() {
           
           <div className="text-center max-w-2xl mx-auto mb-14">
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#1a3300] tracking-[0.04em]">
-              Designed For Presentation Creators
+              Everything You Need to Create & Present
             </h2>
+            <p className="mt-2 text-[#1a3300]/70 text-sm sm:text-base">
+              Powerful generative AI slide creation combined with modern design aesthetics and instant export options.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
-            {/* Capability 1 */}
+            {/* Feature 1: AI Slide Generation */}
             <div className="p-6 rounded-[12px] bg-white border border-[#1a3300] space-y-3 shadow-xs">
               <div className="w-9 h-9 rounded-[6px] bg-[#ffe95c] text-[#1a3300] flex items-center justify-center font-bold">
                 <Wand2 className="w-4 h-4" />
               </div>
-              <h3 className="font-display text-lg font-bold text-[#1a3300]">OpenRouter AI Brain</h3>
+              <h3 className="font-display text-lg font-bold text-[#1a3300]">Autonomous Slide Generation</h3>
               <p className="text-xs sm:text-sm text-[#1a3300]/80 leading-relaxed">
-                Generates concise titles, bullet points, and key takeaways structured specifically for presentation slides.
+                Enter any topic or paste raw notes. AI instantly writes structured headlines, concise takeaways, and crafts your complete deck in seconds.
               </p>
             </div>
 
-            {/* Capability 2 */}
+            {/* Feature 2: 7 Dynamic Layouts */}
             <div className="p-6 rounded-[12px] bg-white border border-[#1a3300] space-y-3 shadow-xs">
               <div className="w-9 h-9 rounded-[6px] bg-[#d5f5c2] text-[#1a3300] flex items-center justify-center font-bold">
-                <Layout className="w-4 h-4" />
+                <Layers className="w-4 h-4" />
               </div>
-              <h3 className="font-display text-lg font-bold text-[#1a3300]">Filmstrip Studio</h3>
+              <h3 className="font-display text-lg font-bold text-[#1a3300]">7 Context-Aware Layouts</h3>
               <p className="text-xs sm:text-sm text-[#1a3300]/80 leading-relaxed">
-                Google Slides and PowerPoint style left sidebar for fluid navigation between presentation cards.
+                Adaptive layouts tailored for each slide: Intro Covers, Stat Grids, Sequential Process Steps, Side-by-Side Comparisons, Quotes, and Image Storytelling.
               </p>
             </div>
 
-            {/* Capability 3 */}
+            {/* Feature 3: Curated Themes */}
             <div className="p-6 rounded-[12px] bg-white border border-[#1a3300] space-y-3 shadow-xs">
               <div className="w-9 h-9 rounded-[6px] bg-[#a8e5e5] text-[#1a3300] flex items-center justify-center font-bold">
-                <ImageIcon className="w-4 h-4" />
+                <Palette className="w-4 h-4" />
               </div>
-              <h3 className="font-display text-lg font-bold text-[#1a3300]">Visual Sketches</h3>
+              <h3 className="font-display text-lg font-bold text-[#1a3300]">8 Curated Editorial Themes</h3>
               <p className="text-xs sm:text-sm text-[#1a3300]/80 leading-relaxed">
-                Render graphics and atmospheric artwork directly onto presentation cards with 1-click generation.
+                Switch between Cream Sketchbook, Forest Ink, Mint Botanical, Terracotta Studio, Obsidian Editorial, and more with custom artistic background overlays.
               </p>
             </div>
 
-            {/* Capability 4 */}
+            {/* Feature 4: AI Visuals */}
             <div className="p-6 rounded-[12px] bg-white border border-[#1a3300] space-y-3 shadow-xs">
               <div className="w-9 h-9 rounded-[6px] bg-[#f6d0ff] text-[#1a3300] flex items-center justify-center font-bold">
-                <FileSpreadsheet className="w-4 h-4" />
+                <ImageIcon className="w-4 h-4" />
               </div>
-              <h3 className="font-display text-lg font-bold text-[#1a3300]">Instant PPTX Download</h3>
+              <h3 className="font-display text-lg font-bold text-[#1a3300]">Contextual AI Image Generation</h3>
               <p className="text-xs sm:text-sm text-[#1a3300]/80 leading-relaxed">
-                Export native editable PowerPoint (.pptx) slide files compatible with Microsoft PowerPoint & Keynote.
+                Generate high-resolution commercial photography and illustrations tailored specifically to your slide topic with 1-click generation and caching.
               </p>
             </div>
 
-            {/* Capability 5 */}
+            {/* Feature 5: PPTX Export */}
             <div className="p-6 rounded-[12px] bg-white border border-[#1a3300] space-y-3 shadow-xs">
               <div className="w-9 h-9 rounded-[6px] bg-[#ffe95c] text-[#1a3300] flex items-center justify-center font-bold">
-                <FileText className="w-4 h-4" />
+                <FileSpreadsheet className="w-4 h-4" />
               </div>
-              <h3 className="font-display text-lg font-bold text-[#1a3300]">Landscape PDF Print</h3>
+              <h3 className="font-display text-lg font-bold text-[#1a3300]">Editable PowerPoint (.pptx) Export</h3>
               <p className="text-xs sm:text-sm text-[#1a3300]/80 leading-relaxed">
-                One-click print engine formatted for crisp landscape slide PDF export with zero UI clutter.
+                Export native editable PPTX presentation files with matching color palettes, shapes, and formatted text boxes compatible with PowerPoint and Keynote.
               </p>
             </div>
 
-            {/* Capability 6 */}
+            {/* Feature 6: Fullscreen Presenter */}
             <div className="p-6 rounded-[12px] bg-white border border-[#1a3300] space-y-3 shadow-xs">
               <div className="w-9 h-9 rounded-[6px] bg-[#d5f5c2] text-[#1a3300] flex items-center justify-center font-bold">
-                <Zap className="w-4 h-4" />
+                <Monitor className="w-4 h-4" />
               </div>
-              <h3 className="font-display text-lg font-bold text-[#1a3300]">Prisma Deck History</h3>
+              <h3 className="font-display text-lg font-bold text-[#1a3300]">Live Presentation Mode</h3>
               <p className="text-xs sm:text-sm text-[#1a3300]/80 leading-relaxed">
-                Save presentations reliably into PostgreSQL database for quick retrieval on your user dashboard.
+                Deliver presentations seamlessly with true browser fullscreen, proportional 16:9 canvas scaling, slide counter, and arrow/spacebar keyboard navigation.
               </p>
             </div>
 
@@ -437,15 +429,19 @@ export function LandingPage() {
       <footer className="bg-[#fcfaf5] text-[#1a3300]/70 py-10 border-t border-[#b6b6b6]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-[6px] bg-[#ffe95c] border border-[#1a3300]/20 text-[#1a3300] flex items-center justify-center font-display font-extrabold text-sm">
-              lo
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-[6px] overflow-hidden border border-[#1a3300]/20 text-[#1a3300] flex items-center justify-center bg-[#ffe95c] shrink-0">
+              <img
+                src="/logo.jpg"
+                alt="SlideSpark Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <span className="text-[#1a3300] font-bold text-sm">SlideAI Presentation Studio</span>
+            <span className="text-[#1a3300] font-bold text-sm">SlideSpark Presentation Studio</span>
           </div>
 
           <div className="text-xs font-mono-tag text-[#1a3300]/60">
-            Creative Agency Sketchbook System &bull; &copy; {new Date().getFullYear()} SlideAI
+            Creative Agency Sketchbook System &bull; &copy; {new Date().getFullYear()} SlideSpark
           </div>
 
         </div>

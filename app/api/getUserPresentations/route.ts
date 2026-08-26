@@ -1,18 +1,28 @@
-import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function GET(req: NextRequest) {
-  const searchParams = req.nextUrl.searchParams;
-  const userId = searchParams.get("userId");
-
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-  });
-
   try {
-    const presentations = await prisma.prsesentation.findMany({
-      where: { userId: String(userId) },
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    // Determine target userId: session user or explicit query param
+    const searchParams = req.nextUrl.searchParams;
+    const queryUserId = searchParams.get("userId");
+    const targetUserId = queryUserId || session?.user?.id;
+
+    if (!targetUserId) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please sign in." },
+        { status: 401 }
+      );
+    }
+
+    const presentations = await prisma.presentation.findMany({
+      where: { userId: targetUserId },
       include: {
         slides: {
           orderBy: { slidenumber: "asc" },

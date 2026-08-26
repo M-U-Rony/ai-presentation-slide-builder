@@ -1,20 +1,36 @@
 import { OpenRouter } from '@openrouter/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { prisma } from '@/lib/prisma';
 import { Slide } from '@/lib/types';
-
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
-});
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in to create presentations." },
+        { status: 401 }
+      );
+    }
+
     const { promt, slidecnt, selectedThemeId } = await req.json();
 
     if (!promt || !slidecnt || !selectedThemeId) {
       return NextResponse.json(
         { error: "Both prompt and slide count are required." },
+        { status: 400 }
+      );
+    }
+
+    const numericSlideCount = Number(slidecnt);
+    if (isNaN(numericSlideCount) || numericSlideCount < 1 || numericSlideCount > 20) {
+      return NextResponse.json(
+        { error: "At maximum 20 slides can be generated." },
         { status: 400 }
       );
     }
@@ -99,39 +115,39 @@ RULES:
 
     const aiResponse = completion.choices[0].message?.content;
     const presentationObject = JSON.parse(aiResponse as string);
-    console.log("\n\n", presentationObject, "\n\n");
+    // Execute creation in an atomic transaction: all slides create or entire operation rolls back
+    const newPresentation = await prisma.$transaction(async (tx) => {
+      const createdPresentation = await tx.presentation.create({
+        data: {
+          title: presentationObject.presentationTitle,
+          totalSlides: presentationObject.totalSlides,
+          themeColors: selectedThemeId,
+          userId: session.user.id,
+        },
+      });
 
-    // Ensure default user "1" exists in DB
-    await prisma.user.upsert({
-      where: { id: "1" },
-      update: {},
-      create: { id: "1", email: "user1@example.com", name: "Default User" }
-    });
-
-    const newPresentation = await prisma.prsesentation.create({
-      data: {
-        title: presentationObject.presentationTitle,
-        totalSlides: presentationObject.totalSlides,
-        themeColors: selectedThemeId,
-        userId: "1" // Default user String ID
+      if (!presentationObject.slides || !Array.isArray(presentationObject.slides) || presentationObject.slides.length === 0) {
+        throw new Error("No valid slides found in AI response");
       }
-    });
 
-    const newSlides = await prisma.slide.createMany({
-      data: presentationObject.slides.map((slide: Slide) => ({
-        title: slide.title,
-        subtitle: slide.subtitle || "",
-        slideLayout: slide.slideLayout,
-        imgUrl: "",
-        slidenumber: slide.slideNumber,
-        content: slide.content || [],
-        presentationId: newPresentation.id,
-      })),
+      await tx.slide.createMany({
+        data: presentationObject.slides.map((slide: Slide) => ({
+          title: slide.title,
+          subtitle: slide.subtitle || "",
+          slideLayout: slide.slideLayout,
+          imgUrl: "",
+          slidenumber: slide.slideNumber,
+          content: slide.content || [],
+          presentationId: createdPresentation.id,
+        })),
+      });
+
+      return createdPresentation;
     });
 
     return NextResponse.json({
       success: true,
-      presentationId: newPresentation.id
+      presentationId: newPresentation.id,
     });
   } catch (error) {
     console.log(error);
