@@ -261,16 +261,67 @@ export function resolveSlideLayoutData({
     }
 
     case "quote": {
+      const cleanQuotes = (str?: string) =>
+        (str || "").replace(/^["'“‘«„`]+/, "").replace(/["'”’»‟`]+$/, "").trim();
+
+      // Collect all potential text candidates from title, subtitle, and content
+      const allTexts: string[] = [title, subtitle, ...content]
+        .map((s) => (s ? cleanQuotes(s) : ""))
+        .filter((s) => s.length > 0);
+
+      // Find the quote: The longest string is always the actual quote statement
+      let rawQuote = "";
+      let remainingTexts: string[] = [];
+
+      if (allTexts.length > 0) {
+        // Sort by length descending to find the longest string (the quote)
+        const sortedByLength = [...allTexts].sort((a, b) => b.length - a.length);
+        rawQuote = sortedByLength[0];
+
+        // Filter out the selected quote from the remaining candidates
+        const quoteIdx = allTexts.indexOf(rawQuote);
+        remainingTexts = allTexts.filter((_, idx) => idx !== quoteIdx);
+      } else {
+        rawQuote = "Innovation distinguishes between a leader and a follower.";
+      }
+
+      let rawAuthor = "";
+      let rawRole = "";
+
+      // Check if the quote contains an inline attribution separator like "...quote..." — Author, Role
+      const dashMatch = rawQuote.match(/^(.+?)\s*(?:—|–|--|-)\s*([^—–-]+)$/);
+      if (dashMatch && dashMatch[1].length > 15) {
+        rawQuote = dashMatch[1].trim();
+        const authorAndRole = dashMatch[2].trim();
+        if (authorAndRole.includes(",")) {
+          const parts = authorAndRole.split(",").map((s) => s.trim());
+          rawAuthor = parts[0];
+          rawRole = parts.slice(1).join(", ");
+        } else {
+          rawAuthor = authorAndRole;
+        }
+      }
+
+      // Assign author and role from the remaining texts if not yet populated
+      if (!rawAuthor && remainingTexts.length > 0) {
+        rawAuthor = remainingTexts[0];
+        if (remainingTexts.length > 1) {
+          rawRole = remainingTexts.slice(1).join(" • ");
+        }
+      } else if (rawAuthor && !rawRole && remainingTexts.length > 0) {
+        rawRole = remainingTexts.join(" • ");
+      }
+
+      if (!rawAuthor) {
+        rawAuthor = "Key Insight";
+      }
+
       const quoteData: QuoteSlide = {
         layoutType: "quote",
         slideNumber,
-        quote:
-          content[0] ||
-          subtitle ||
-          title ||
-          "Innovation distinguishes between a leader and a follower.",
-        author: content[1] || "Key Takeaway",
-        titleOrRole: content[2] || subtitle || "",
+        quote: cleanQuotes(rawQuote),
+        author: cleanQuotes(rawAuthor),
+        titleOrRole: cleanQuotes(rawRole),
       };
       return quoteData;
     }

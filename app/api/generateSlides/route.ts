@@ -46,7 +46,10 @@ AVAILABLE SLIDE LAYOUTS:
 - "IntroSlide": Use ONLY for Slide 1. Headline title, subtitle, and presenter overview.
 - "TitleBullets": Standard overview with 3-4 crisp bullet points.
 - "StatGrid": For metrics, KPIs, numbers, and data points (e.g. "95% Retention", "$4.2M ARR").
-- "Quote": For testimonials, impactful quotes, philosophy, or customer feedback.
+- "Quote": For testimonials, impactful quotes, philosophy, or industry leaders.
+  - "title": The raw quote text (without outer quote marks or attribution).
+  - "subtitle": The person's name (e.g. "Satya Nadella").
+  - "content": ["Person's role or organization (e.g. 'CEO of Microsoft')"]
 - "ImageText": Narrative storytelling with a visual focus and text explanation.
 - "ProcessSteps": For sequential step-by-step guides, workflows, or roadmaps.
 - "Comparison": For comparing two sides (e.g. "Before vs After", "Pros vs Cons", "Old Way vs New Way").
@@ -115,34 +118,28 @@ RULES:
 
     const aiResponse = completion.choices[0].message?.content;
     const presentationObject = JSON.parse(aiResponse as string);
-    // Execute creation in an atomic transaction: all slides create or entire operation rolls back
-    const newPresentation = await prisma.$transaction(async (tx) => {
-      const createdPresentation = await tx.presentation.create({
-        data: {
-          title: presentationObject.presentationTitle,
-          totalSlides: presentationObject.totalSlides,
-          themeColors: selectedThemeId,
-          userId: session.user.id,
+    // Execute atomic creation via Prisma nested write: all slides create together or rollback
+    if (!presentationObject.slides || !Array.isArray(presentationObject.slides) || presentationObject.slides.length === 0) {
+      throw new Error("No valid slides found in AI response");
+    }
+
+    const newPresentation = await prisma.presentation.create({
+      data: {
+        title: presentationObject.presentationTitle,
+        totalSlides: presentationObject.totalSlides,
+        themeColors: selectedThemeId,
+        userId: session.user.id,
+        slides: {
+          create: presentationObject.slides.map((slide: Slide) => ({
+            title: slide.title,
+            subtitle: slide.subtitle || "",
+            slideLayout: slide.slideLayout,
+            imgUrl: "",
+            slidenumber: slide.slideNumber,
+            content: slide.content || [],
+          })),
         },
-      });
-
-      if (!presentationObject.slides || !Array.isArray(presentationObject.slides) || presentationObject.slides.length === 0) {
-        throw new Error("No valid slides found in AI response");
-      }
-
-      await tx.slide.createMany({
-        data: presentationObject.slides.map((slide: Slide) => ({
-          title: slide.title,
-          subtitle: slide.subtitle || "",
-          slideLayout: slide.slideLayout,
-          imgUrl: "",
-          slidenumber: slide.slideNumber,
-          content: slide.content || [],
-          presentationId: createdPresentation.id,
-        })),
-      });
-
-      return createdPresentation;
+      },
     });
 
     return NextResponse.json({
