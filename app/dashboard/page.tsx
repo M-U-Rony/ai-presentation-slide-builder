@@ -3,19 +3,17 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Navbar from '@/components/navbar';
 import { 
   Presentation, 
   Sparkles, 
-  Plus, 
   History, 
-  ArrowLeft, 
   Layers, 
   Loader2, 
   Clock, 
   ArrowRight,
   Palette,
   ChevronRight,
-  LogOut,
   Lightbulb
 } from 'lucide-react';
 import { allThemes } from '@/lib/theme';
@@ -72,61 +70,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#fcfaf5] text-[#1a3300] font-sans selection:bg-[#ffe95c] selection:text-[#1a3300] flex flex-col">
       
       {/* ==================== FLOATING NAVIGATION BAR ==================== */}
-      <div className="sticky top-4 z-50 max-w-6xl mx-auto w-full px-4 sm:px-6">
-        <nav className="bg-[#fcfaf5] border border-[#b6b6b6] rounded-[16px] px-4 py-2.5 nav-glow flex items-center justify-between">
-          
-          {/* Brand Logo */}
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-9 h-9 rounded-[6px] bg-[#ffe95c] border border-[#1a3300]/20 text-[#1a3300] flex items-center justify-center font-display font-extrabold text-lg shadow-xs group-hover:scale-105 transition-transform">
-                lo
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-lg tracking-tight text-[#1a3300]">
-                  SlideAI
-                </span>
-              </div>
-            </Link>
-          </div>
-
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/"
-              className="min-h-[36px] px-3.5 py-1.5 rounded-[6px] border border-[#b6b6b6] text-[#1a3300] hover:bg-[#ffe95c] font-medium text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Home</span>
-            </Link>
-
-            <Link
-              href="/create"
-              className="min-h-[36px] px-4 py-1.5 rounded-[6px] bg-[#1a3300] hover:bg-[#1a3300]/90 text-[#fcfaf5] font-medium text-xs sm:text-sm flex items-center gap-1.5 shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] transition-all cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create New</span>
-            </Link>
-
-            <button
-              onClick={async () => {
-                await authClient.signOut({
-                  fetchOptions: {
-                    onSuccess: () => {
-                      window.location.href = "/signin";
-                    }
-                  }
-                });
-              }}
-              className="min-h-[36px] px-3 py-1.5 rounded-[6px] border border-[#b6b6b6] text-[#1a3300]/70 hover:text-[#cb5521] hover:border-[#cb5521] font-medium text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Sign Out"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
-          </div>
-
-        </nav>
-      </div>
+      <Navbar />
 
       {/* ==================== MAIN DASHBOARD CONTENT ==================== */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
@@ -210,8 +154,8 @@ export default function Dashboard() {
                     {/* Visual Card Preview Window */}
                     <div className={`w-full h-40 rounded-[8px] ${theme.background} border ${theme.border} p-3 flex flex-col justify-between overflow-hidden relative transition-transform duration-200 group-hover:scale-[1.01]`}>
                       <div className="flex items-center justify-between text-[10px] font-bold">
-                        <span className={`px-2 py-0.5 rounded-[4px] capitalize ${theme.badge}`}>
-                          {item.themeColors}
+                        <span className="font-mono-tag text-[10px] uppercase font-bold opacity-80">
+                          {theme.name}
                         </span>
                         <span className="flex items-center gap-1 font-mono-tag text-current opacity-80">
                           <Layers className="w-3 h-3" /> {item.totalSlides} slides

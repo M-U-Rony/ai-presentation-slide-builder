@@ -96,7 +96,7 @@ export const ComparisonSlideSchema = z.object({
 });
 export type ComparisonSlide = z.infer<typeof ComparisonSlideSchema>;
 
-// Discriminated Union for all 7 Slide Layouts
+// Discriminated Union for all 7 Slide Layout
 export const SlideLayoutSchema = z.discriminatedUnion("layoutType", [
   IntroSlideSchema,
   TitleBulletsSlideSchema,

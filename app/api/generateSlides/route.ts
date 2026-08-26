@@ -23,10 +23,21 @@ export async function POST(req: NextRequest) {
       apiKey: process.env.OPENROUTER_API_KEY
     });
 
-    const SYSTEM_PROMPT = `You are an expert AI presentation slide builder like Gamma.ai.
-Your task is to generate engaging slide deck content based on a user topic and requested slide count. User may give presentation topic only or slide content also.
+const SYSTEM_PROMPT = `You are an expert AI presentation slide builder like Gamma.ai.
+Your task is to generate engaging slide deck content based on a user topic and requested slide count.
+
+AVAILABLE SLIDE LAYOUTS:
+- "IntroSlide": Use ONLY for Slide 1. Headline title, subtitle, and presenter overview.
+- "TitleBullets": Standard overview with 3-4 crisp bullet points.
+- "StatGrid": For metrics, KPIs, numbers, and data points (e.g. "95% Retention", "$4.2M ARR").
+- "Quote": For testimonials, impactful quotes, philosophy, or customer feedback.
+- "ImageText": Narrative storytelling with a visual focus and text explanation.
+- "ProcessSteps": For sequential step-by-step guides, workflows, or roadmaps.
+- "Comparison": For comparing two sides (e.g. "Before vs After", "Pros vs Cons", "Old Way vs New Way").
+
 CRITICAL REQUIREMENT:
 Output ONLY valid, raw JSON. Do NOT include markdown formatting (\`\`\`json), intro text, or extra commentary.
+
 EXACT JSON OUTPUT SCHEMA:
 {
   "presentationTitle": "Main Presentation Title",
@@ -36,23 +47,36 @@ EXACT JSON OUTPUT SCHEMA:
       "slideNumber": 1,
       "title": "Slide Heading",
       "subtitle": "Optional slide subheader",
+      "slideLayout": "IntroSlide",
       "content": [
-        "First key point",
-        "Second key point",
-        "Third key point"
+        "First key point or description",
+        "Second key point"
+      ]
+    },
+    {
+      "slideNumber": 2,
+      "title": "Key Performance Metrics",
+      "subtitle": "Q3 Growth Highlights",
+      "slideLayout": "StatGrid",
+      "content": [
+        "10x Faster Generation",
+        "99.9% Uptime SLA",
+        "500k+ Active Users"
       ]
     }
   ]
 }
+
 RULES:
-1. Create EXACTLY the number of slides requested by the user.
-2. Slide 1 must be a compelling title/intro slide.
-3. Keep bullet points concise, impactful, and presentation-ready (3-4 points per slide).
-4. Ensure logical flow across slides.`;
+1. Slide 1 must ALWAYS use "IntroSlide".
+2. Select the most relevant "slideLayout" for each subsequent slide based on its content.
+3. Keep bullet points concise and impactful (2-4 items per slide).
+4. Create EXACTLY the requested slide count.`;
+
 
     const completion = await client.chat.send({
       chatRequest: {
-        model: "deepseek/deepseek-v4-flash",
+        model: process.env.Text_Generation_Model,
         messages: [
           {
             role: 'system',
@@ -75,6 +99,7 @@ RULES:
 
     const aiResponse = completion.choices[0].message?.content;
     const presentationObject = JSON.parse(aiResponse as string);
+    console.log("\n\n", presentationObject, "\n\n");
 
     // Ensure default user "1" exists in DB
     await prisma.user.upsert({
@@ -96,6 +121,7 @@ RULES:
       data: presentationObject.slides.map((slide: Slide) => ({
         title: slide.title,
         subtitle: slide.subtitle || "",
+        slideLayout: slide.slideLayout,
         imgUrl: "",
         slidenumber: slide.slideNumber,
         content: slide.content || [],
@@ -111,9 +137,9 @@ RULES:
     console.log(error);
 
     return NextResponse.json(
-      { 
-        error: "Failed to generate slide content", 
-        details: error 
+      {
+        error: "Failed to generate slide content",
+        details: error
       },
       { status: 500 }
     );

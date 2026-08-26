@@ -40,7 +40,7 @@ export function LandingPage() {
   const [prompt, setPrompt] = useState('Create a 5-slide pitch deck for an AI-powered personal productivity app');
   const [slideCount, setSlideCount] = useState(5);
   const [activeTab, setActiveTab] = useState(0);
-  const [selectedThemeId, setSelectedThemeId] = useState('cream');
+  const [selectedThemeId, setSelectedThemeId] = useState('cream-sketchbook');
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,117 +152,6 @@ export function LandingPage() {
           <p className="text-base sm:text-lg md:text-[19px] text-[#1a3300]/80 max-w-[600px] mx-auto mb-10 leading-relaxed font-normal [text-wrap:balance]">
             Type your presentation topic or paste bullet notes. SlideAI structures titles, content cards, and sketchbook themes in seconds.
           </p>
-
-          {/* ==================== HERO PROMPT GENERATOR CONTAINER ==================== */}
-          <div className="max-w-2xl mx-auto bg-[#fcfaf5] p-5 sm:p-7 rounded-[12px] border border-[#1a3300] shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] text-left">
-            <form onSubmit={handleGenerate} className="space-y-4">
-              
-              {/* Text Input */}
-              <div className="relative group">
-                <div className="absolute top-3.5 left-3.5 text-[#1a3300]/60 group-focus-within:text-[#1a3300] transition-colors">
-                  <Wand2 className="w-4 h-4" />
-                </div>
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe your presentation topic or paste raw outline notes..."
-                  rows={3}
-                  className="w-full pl-10 pr-3.5 pt-3 pb-2.5 bg-white text-[#1a3300] placeholder-[#1a3300]/40 rounded-[6px] border border-[#b6b6b6] focus:border-[#1a3300] focus:ring-1 focus:ring-[#1a3300] text-sm sm:text-base font-normal resize-none outline-none transition-all"
-                />
-              </div>
-
-              {/* Controls Bar */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-[#b6b6b6]/60">
-                
-                {/* Slide Count Options */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-mono-tag font-semibold text-[#1a3300]/80 uppercase tracking-wider flex items-center gap-1">
-                    <Layers className="w-3.5 h-3.5" />
-                    Length:
-                  </span>
-                  <div className="flex items-center gap-1 bg-[#1a3300]/5 p-0.5 rounded-[6px] border border-[#b6b6b6]">
-                    {[3, 5, 8, 10].map((count) => (
-                      <button
-                        key={count}
-                        type="button"
-                        onClick={() => setSlideCount(count)}
-                        className={`min-h-[32px] px-2.5 py-1 rounded-[6px] text-xs font-semibold transition-all cursor-pointer ${
-                          slideCount === count
-                            ? 'bg-[#1a3300] text-[#fcfaf5]'
-                            : 'text-[#1a3300] hover:bg-[#ffe95c]'
-                        }`}
-                      >
-                        {count} Slides
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Theme Selector */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-mono-tag font-semibold text-[#1a3300]/80 uppercase tracking-wider flex items-center gap-1">
-                    <Palette className="w-3.5 h-3.5" />
-                    Palette:
-                  </span>
-                  <div className="flex items-center gap-1 bg-[#1a3300]/5 p-0.5 rounded-[6px] border border-[#b6b6b6]">
-                    {displayThemes.slice(0, 4).map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setSelectedThemeId(t.id)}
-                        className={`min-h-[32px] px-2 py-1 rounded-[6px] text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-                          selectedThemeId === t.id
-                            ? 'bg-[#1a3300] text-[#fcfaf5] font-bold'
-                            : 'text-[#1a3300] hover:bg-[#ffe95c]'
-                        }`}
-                      >
-                        <span className={`w-2 h-2 rounded-full ${t.swatch}`} />
-                        {t.name.split(' ')[0]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Submit CTA Button */}
-              <button
-                type="submit"
-                className="w-full min-h-[48px] px-6 py-3 rounded-[6px] bg-[#1a3300] hover:bg-[#1a3300]/90 text-[#fcfaf5] font-medium text-base flex items-center justify-center gap-2 shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] transition-all active:scale-[0.99] cursor-pointer"
-              >
-                <span className="font-mono text-lg leading-none">→</span>
-                <span>Generate {slideCount}-Slide Presentation Now</span>
-                <ArrowRight className="w-4 h-4 ml-0.5" />
-              </button>
-            </form>
-
-            {/* Reassurance Caption below CTA (Inter 400 12-14px) */}
-            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-4 pt-3 border-t border-[#b6b6b6]/40 text-xs text-[#1a3300]/70 font-medium">
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#1a3300]" /> No credit card required
-              </span>
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#1a3300]" /> Instant PPTX & PDF exports
-              </span>
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#1a3300]" /> Clean moodboard layout
-              </span>
-            </div>
-          </div>
-
-          {/* Backed-by Logo Strip */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-[#b6b6b6] text-xs font-mono-tag">
-            <span className="text-[#1a3300]/60 font-sans text-xs">Backed by design principles of:</span>
-            <div className="flex items-center gap-6 font-display text-sm tracking-wider font-bold text-[#1a3300]/50 uppercase">
-              <span className="hover:text-[#1a3300] transition-colors">Notion</span>
-              <span>&bull;</span>
-              <span className="hover:text-[#1a3300] transition-colors">Pitch</span>
-              <span>&bull;</span>
-              <span className="hover:text-[#1a3300] transition-colors">Linear</span>
-              <span>&bull;</span>
-              <span className="hover:text-[#1a3300] transition-colors">Framer</span>
-            </div>
-          </div>
 
         </div>
       </section>

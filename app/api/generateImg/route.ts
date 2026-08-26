@@ -35,21 +35,20 @@ export async function POST(req: NextRequest) {
             apiKey: process.env.OPENROUTER_API_KEY
         });
 
-        const SYSTEM_PROMPT = `You are an expert AI visual designer for modern presentation slides.
-Your task is to generate a stunning visual graphic illustration or 3D abstract artwork for slide decks.
+        const SYSTEM_PROMPT = `You are an elite editorial presentation photographer and commercial visual director.
+Your task is to generate a breathtaking, ultra-photorealistic, high-end photograph suitable for modern Fortune 500 presentation slide decks.
 
-CRITICAL REQUIREMENT - NO TEXT:
-- Do NOT render any words, text, letters, numbers, labels, captions, or typography in the image under any circumstances.
-- The image must be 100% pure visual graphics, abstract shapes, minimalist visual elements, isometric artwork, or professional photography.
-
-VISUAL DESIGN GUIDELINES:
-1. Visual Style: Modern, clean, vibrant, 3D abstract render, minimalist visual graphic, isometric art, or sleek photography suitable for slides.
-2. Conceptual Relevance: Visually represent the concepts of the slide title and content using visual metaphors and symbolic design.
-3. Aesthetic Excellence: Professional Studio lighting, smooth gradient backgrounds, zero text distortion, zero watermarks.`;
+PHOTOREALISM & AESTHETIC DIRECTIVES:
+1. Photographic Style: Ultra-realistic editorial commercial photography, 8K resolution, photorealistic, shot on high-end 35mm/85mm lens, natural cinematic lighting, subtle depth of field (bokeh).
+2. Subject Matter: Authentic real-world environments, modern architectural spaces, contemporary professional teams, sleek real technology/hardware, or elegant conceptual macro photography directly reflecting the slide topic.
+3. Quality: Crisp focus, natural skin and material textures, premium commercial color grading, professional composition.
+4. STRICT PROHIBITIONS:
+   - NO 3D cartoon renders, NO low-poly CGI, NO plastic surreal mannequins, NO clip art.
+   - Absolutely NO text, letters, words, numbers, labels, typography, or watermarks in the image.`;
 
         const completion = await client.chat.send({
             chatRequest: {
-                model: "google/gemini-2.5-flash-image",
+                model: process.env.Image_Generation_Model,
                 messages: [
                     {
                         role: 'system',
@@ -57,7 +56,7 @@ VISUAL DESIGN GUIDELINES:
                     },
                     {
                         role: 'user',
-                        content: `Generate a pure visual graphic with NO text/words for a slide titled "${title}". Slide themes: ${Array.isArray(content) ? content.join(', ') : content}. Strictly NO text, NO words, NO letters.`,
+                        content: `High-end, photorealistic commercial photography capturing the concept: "${title}". Context: ${Array.isArray(content) ? content.join('. ') : content}. Style: Authentic real-world scene, 8K UHD, cinematic studio lighting, photorealistic, professional editorial composition. Strictly NO text, NO words, NO typography.`,
                     },
                 ],
             }

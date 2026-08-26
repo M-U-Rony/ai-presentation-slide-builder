@@ -66,6 +66,7 @@ model Slide {
   subtitle String
   imgUrl String?
   slidenumber Int
+  slideLayout String?
   content String[]
   presentationId Int
   presentation Prsesentation @relation(fields: [presentationId],references: [id])

@@ -17,21 +17,12 @@ import {
   FileText,
   FileSpreadsheet,
   LogOut,
-
 } from "lucide-react";
 import Link from "next/link";
-import { Slide } from "@/lib/types";
+import { Presentation } from "@/lib/types";
 import pptxgen from "pptxgenjs";
 import { authClient } from "@/lib/auth-client";
-
-interface PresentationData {
-  id: number;
-  title: string;
-  totalSlides: number;
-  themeColors: string;
-  userId: number;
-  slides: Slide[];
-}
+import { SlideLayout } from "@/lib/slideLayouts";
 
 function SlideshowContent() {
   const searchParams = useSearchParams();
@@ -45,7 +36,9 @@ function SlideshowContent() {
     }
   }, [session, isPending, router]);
 
-  const [presentation, setPresentation] = useState<PresentationData | null>(null);
+  const [presentation, setPresentation] = useState<Presentation | null>(
+    null,
+  );
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -62,13 +55,13 @@ function SlideshowContent() {
       const res = await fetch(`/api/generateImg`, {
         method: "POST",
         headers: {
-          "Content-type": "application/json"
+          "Content-type": "application/json",
         },
         body: JSON.stringify({
           slideId: currentSlide.id,
           title: currentSlide.title,
-          content: currentSlide.content
-        })
+          content: currentSlide.content,
+        }),
       });
 
       if (!res.ok) {
@@ -80,13 +73,15 @@ function SlideshowContent() {
       const rawImgUrl = data.image || data.slide?.imgUrl || data.imgUrl;
 
       if (rawImgUrl && presentation) {
-        const newImgUrl = rawImgUrl.includes('?') ? rawImgUrl : `${rawImgUrl}?t=${Date.now()}`;
+        const newImgUrl = rawImgUrl.includes("?")
+          ? rawImgUrl
+          : `${rawImgUrl}?t=${Date.now()}`;
         setPresentation((prev) => {
           if (!prev) return null;
           const updatedSlides = [...prev.slides];
           updatedSlides[activeSlideIndex] = {
             ...updatedSlides[activeSlideIndex],
-            imgUrl: newImgUrl
+            imgUrl: newImgUrl,
           };
           return { ...prev, slides: updatedSlides };
         });
@@ -103,12 +98,22 @@ function SlideshowContent() {
 
     try {
       setIsExporting(true);
+      const activeTheme =
+        allThemes.find((t) => t.id === presentation.themeColors) || allThemes[0];
+      const pptxColors = activeTheme.pptxColors || {
+        bg: "FCFAF5",
+        title: "1A3300",
+        subtitle: "3F4E34",
+        bullet: "2A4015",
+        accent: "CB5521",
+      };
+
       const pptx = new pptxgen();
       pptx.layout = "LAYOUT_16x9";
 
       presentation.slides.forEach((slide) => {
         const pptxSlide = pptx.addSlide();
-        pptxSlide.background = { color: "0B3153" };
+        pptxSlide.background = { color: pptxColors.bg };
 
         // Slide Title
         pptxSlide.addText(slide.title, {
@@ -118,7 +123,7 @@ function SlideshowContent() {
           h: 1.0,
           fontSize: 26,
           bold: true,
-          color: "38BDF8",
+          color: pptxColors.title,
         });
 
         // Subtitle
@@ -129,7 +134,7 @@ function SlideshowContent() {
             w: slide.imgUrl ? "55%" : "80%",
             h: 0.6,
             fontSize: 14,
-            color: "CBD5E1",
+            color: pptxColors.subtitle,
           });
         }
 
@@ -137,7 +142,7 @@ function SlideshowContent() {
         if (slide.content && slide.content.length > 0) {
           const bullets = slide.content.map((point) => ({
             text: point,
-            options: { bullet: true, fontSize: 13, color: "E2E8F0" },
+            options: { bullet: true, fontSize: 13, color: pptxColors.bullet },
           }));
           pptxSlide.addText(bullets, {
             x: 1.0,
@@ -201,9 +206,6 @@ function SlideshowContent() {
     getPresentation();
   }, [id]);
 
-  const currentTheme =
-    allThemes.find((t) => t.id === presentation?.themeColors) || allThemes[0];
-
   const currentSlide = presentation?.slides?.[activeSlideIndex];
 
   if (loading) {
@@ -222,7 +224,9 @@ function SlideshowContent() {
           <div className="w-12 h-12 rounded-[6px] bg-[#ffe95c] text-[#1a3300] flex items-center justify-center mx-auto mb-4 border border-[#1a3300]/20 font-bold">
             <PresentationIcon className="w-6 h-6" />
           </div>
-          <h2 className="font-display text-xl font-bold mb-2">No Presentation Found</h2>
+          <h2 className="font-display text-xl font-bold mb-2">
+            No Presentation Found
+          </h2>
           <p className="text-xs text-[#1a3300]/70 mb-6">
             Could not find slides for this presentation ID.
           </p>
@@ -246,11 +250,12 @@ function SlideshowContent() {
           <div key={slide.id || idx} className="print-slide-page">
             <div className="w-full max-w-[1200px] aspect-[16/9] shadow-none">
               <SlideCard
-                theme={currentTheme}
+                theme={presentation.themeColors}
                 title={slide.title}
                 subtitle={slide.subtitle}
                 content={slide.content}
                 imgUrl={slide.imgUrl}
+                slideLayout={slide.slideLayout}
                 isSelected={false}
               />
             </div>
@@ -260,7 +265,6 @@ function SlideshowContent() {
 
       {/* INTERACTIVE WEB SCREEN CONTAINER (HIDDEN WHEN PRINTING TO PDF) */}
       <div className="screen-wrapper no-print h-screen w-screen max-h-screen overflow-hidden bg-[#fcfaf5] text-[#1a3300] flex flex-col font-sans selection:bg-[#ffe95c] selection:text-[#1a3300] select-none">
-        
         {/* FULLSCREEN PRESENTATION MODE OVERLAY */}
         {isFullscreen && currentSlide && (
           <div className="fixed inset-0 z-[100] bg-[#1a3300] text-[#fcfaf5] flex flex-col items-center justify-center p-2 sm:p-6 animate-in fade-in duration-200 select-none">
@@ -281,7 +285,8 @@ function SlideshowContent() {
             <div className="w-full h-full flex items-center justify-center p-2 sm:p-6 overflow-hidden">
               <div className="w-full max-w-[1400px] h-full max-h-[85vh] flex items-center justify-center rounded-[12px] overflow-hidden">
                 <SlideCard
-                  theme={currentTheme}
+                  theme={presentation.themeColors}
+                  slideLayout={currentSlide.slideLayout}
                   title={currentSlide.title}
                   subtitle={currentSlide.subtitle}
                   content={currentSlide.content}
@@ -295,7 +300,9 @@ function SlideshowContent() {
             {/* Fullscreen Navigation Controls */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#fcfaf5] text-[#1a3300] px-5 py-2 rounded-[6px] border border-[#1a3300] shadow-xl z-50">
               <button
-                onClick={() => setActiveSlideIndex((prev) => Math.max(0, prev - 1))}
+                onClick={() =>
+                  setActiveSlideIndex((prev) => Math.max(0, prev - 1))
+                }
                 disabled={activeSlideIndex === 0}
                 className="p-1.5 rounded-[4px] hover:bg-[#ffe95c] disabled:opacity-30 transition cursor-pointer"
               >
@@ -305,7 +312,11 @@ function SlideshowContent() {
                 {activeSlideIndex + 1} of {presentation.slides.length}
               </span>
               <button
-                onClick={() => setActiveSlideIndex((prev) => Math.min(presentation.slides.length - 1, prev + 1))}
+                onClick={() =>
+                  setActiveSlideIndex((prev) =>
+                    Math.min(presentation.slides.length - 1, prev + 1),
+                  )
+                }
                 disabled={activeSlideIndex === presentation.slides.length - 1}
                 className="p-1.5 rounded-[4px] hover:bg-[#ffe95c] disabled:opacity-30 transition cursor-pointer"
               >
@@ -331,9 +342,24 @@ function SlideshowContent() {
             <div className="h-4 w-[1px] bg-[#b6b6b6]" />
 
             <div className="flex items-center gap-2.5 text-xs font-medium text-[#1a3300]">
-              <Link href="/" className="hover:underline decoration-[#ffe95c] transition-all">Home</Link>
-              <Link href="/dashboard" className="hover:underline decoration-[#ffe95c] transition-all">Dashboard</Link>
-              <Link href="/create" className="hover:underline decoration-[#ffe95c] transition-all">Create</Link>
+              <Link
+                href="/"
+                className="hover:underline decoration-[#ffe95c] transition-all"
+              >
+                Home
+              </Link>
+              <Link
+                href="/dashboard"
+                className="hover:underline decoration-[#ffe95c] transition-all"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/create"
+                className="hover:underline decoration-[#ffe95c] transition-all"
+              >
+                Create
+              </Link>
             </div>
 
             <div className="h-4 w-[1px] bg-[#b6b6b6] hidden md:block" />
@@ -346,7 +372,9 @@ function SlideshowContent() {
           {/* Center: Slide Navigator Controls */}
           <div className="flex items-center gap-1.5 bg-white border border-[#b6b6b6] rounded-[6px] px-2 py-0.5">
             <button
-              onClick={() => setActiveSlideIndex((prev) => Math.max(0, prev - 1))}
+              onClick={() =>
+                setActiveSlideIndex((prev) => Math.max(0, prev - 1))
+              }
               disabled={activeSlideIndex === 0}
               className="p-1 rounded-[4px] hover:bg-[#ffe95c] text-[#1a3300] disabled:opacity-30 transition cursor-pointer"
               title="Previous Slide"
@@ -357,7 +385,11 @@ function SlideshowContent() {
               {activeSlideIndex + 1} / {presentation.slides.length}
             </span>
             <button
-              onClick={() => setActiveSlideIndex((prev) => Math.min(presentation.slides.length - 1, prev + 1))}
+              onClick={() =>
+                setActiveSlideIndex((prev) =>
+                  Math.min(presentation.slides.length - 1, prev + 1),
+                )
+              }
               disabled={activeSlideIndex === presentation.slides.length - 1}
               className="p-1 rounded-[4px] hover:bg-[#ffe95c] text-[#1a3300] disabled:opacity-30 transition cursor-pointer"
               title="Next Slide"
@@ -374,7 +406,11 @@ function SlideshowContent() {
               className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#ffe95c] border border-[#1a3300] disabled:bg-[#f1f1f1] text-[#1a3300] font-semibold text-xs rounded-[6px] transition cursor-pointer"
               title="Export PowerPoint (.pptx)"
             >
-              {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+              {isExporting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+              )}
               <span className="hidden sm:inline">PPTX</span>
             </button>
 
@@ -401,8 +437,8 @@ function SlideshowContent() {
                   fetchOptions: {
                     onSuccess: () => {
                       window.location.href = "/signin";
-                    }
-                  }
+                    },
+                  },
                 });
               }}
               className="p-1.5 rounded-[6px] border border-[#b6b6b6] text-[#1a3300]/70 hover:text-[#cb5521] hover:border-[#cb5521] transition flex items-center justify-center cursor-pointer"
@@ -415,7 +451,6 @@ function SlideshowContent() {
 
         {/* ==================== WORKSPACE ==================== */}
         <div className="flex-1 h-0 overflow-hidden flex">
-          
           {/* POWERPOINT LEFT FILMSTRIP SIDEBAR */}
           <aside className="w-44 sm:w-52 md:w-60 h-full border-r border-[#b6b6b6] bg-[#fcfaf5] p-3 flex flex-col gap-2.5 overflow-y-auto shrink-0 select-none">
             <div className="flex flex-col gap-2.5">
@@ -430,7 +465,9 @@ function SlideshowContent() {
                     {/* Slide Index Number on left side */}
                     <span
                       className={`text-xs font-mono-tag mt-1 min-w-[14px] text-right ${
-                        isSelected ? "text-[#1a3300] font-bold" : "text-[#1a3300]/50 group-hover:text-[#1a3300]"
+                        isSelected
+                          ? "text-[#1a3300] font-bold"
+                          : "text-[#1a3300]/50 group-hover:text-[#1a3300]"
                       }`}
                     >
                       {index + 1}
@@ -445,7 +482,8 @@ function SlideshowContent() {
                       }`}
                     >
                       <SlideCard
-                        theme={currentTheme}
+                        theme={presentation.themeColors}
+                        slideLayout={slide.slideLayout}
                         title={slide.title}
                         subtitle={slide.subtitle}
                         content={slide.content}
@@ -463,7 +501,6 @@ function SlideshowContent() {
           {/* CENTER MAIN STAGE */}
           <main className="flex-1 h-full bg-[#f1f1f1] p-4 md:p-8 flex flex-col items-center justify-center overflow-auto relative">
             <div className="w-full max-w-4xl shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] rounded-[12px] overflow-hidden border border-[#b6b6b6] transition-all duration-200 relative group bg-[#fcfaf5] shrink-0 my-auto">
-              
               {/* Options Dropdown Menu Button */}
               <div className="absolute top-4 left-4 z-20">
                 <button
@@ -505,8 +542,9 @@ function SlideshowContent() {
 
               {currentSlide && (
                 <SlideCard
-                  theme={currentTheme}
+                  theme={presentation.themeColors}
                   title={currentSlide.title}
+                  slideLayout={currentSlide.slideLayout}
                   subtitle={currentSlide.subtitle}
                   content={currentSlide.content}
                   imgUrl={currentSlide.imgUrl}
@@ -516,7 +554,6 @@ function SlideshowContent() {
               )}
             </div>
           </main>
-
         </div>
       </div>
     </>
@@ -525,11 +562,14 @@ function SlideshowContent() {
 
 export default function Slideshow() {
   return (
-    <Suspense fallback={
-      <div className="h-screen w-screen bg-[#fcfaf5] flex items-center justify-center text-[#1a3300] text-sm font-semibold gap-2">
-        <Loader2 className="w-5 h-5 animate-spin text-[#1a3300]" /> Loading Studio...
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="h-screen w-screen bg-[#fcfaf5] flex items-center justify-center text-[#1a3300] text-sm font-semibold gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-[#1a3300]" /> Loading
+          Studio...
+        </div>
+      }
+    >
       <SlideshowContent />
     </Suspense>
   );
