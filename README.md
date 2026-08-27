@@ -50,15 +50,30 @@ npm install
 
 ### 2. Environment Variables Setup
 
-Create a `.env` file in the root directory:
+Copy the example environment file and fill in your credentials:
+
+```bash
+cp .env.example .env
+```
+
+Your `.env` file should include:
 
 ```env
+OPENROUTER_API_KEY=""
+
+# PostgreSQL connection string
 DATABASE_URL=""
-DIRECT_URL=""
-OPENROUTER_API_KEY="your_openrouter_api_key"
-BETTER_AUTH_SECRET="your_better_auth_secret_at_least_32_chars"
-GITHUB_CLIENT_ID="your_github_client_id"
-GITHUB_CLIENT_SECRET="your_github_client_secret"
+
+BETTER_AUTH_SECRET=""
+
+# Base URL of your app
+BETTER_AUTH_URL="http://localhost:3000"
+
+GITHUB_CLIENT_SECRET=""
+GITHUB_CLIENT_ID=""
+
+Text_Generation_Model=""
+Image_Generation_Model=""
 ```
 
 ### 3. Database Migration
