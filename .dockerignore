@@ -1,0 +1,10 @@
+node_modules
+.next
+generated
+.git
+.gitignore
+.env
+.agents
+docs
+*.md
+.DS_Store

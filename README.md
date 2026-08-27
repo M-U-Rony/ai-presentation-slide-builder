@@ -72,10 +72,37 @@ npx prisma db push
 ### 4. Run Development Server
 
 ```bash
-npm run dev
+bun dev
+# or: npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🐳 Docker Deployment
+
+You can also build and run the entire application containerized using Docker:
+
+### 1. Build the Docker Image
+
+```bash
+docker build -t slide-builder .
+```
+
+### 2. Run the Container
+
+```bash
+docker run -p 3000:3000 --env-file .env slide-builder
+```
+
+To run in the background (detached mode):
+
+```bash
+docker run -d -p 3000:3000 --name slide-builder-app --env-file .env slide-builder
+```
+
+Open [http://localhost:3000](http://localhost:3000) to access the application.
 
 ---
 
