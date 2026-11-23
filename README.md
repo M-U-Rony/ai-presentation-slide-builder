@@ -9,7 +9,7 @@
 
 **SlideSpark** is a full-stack, AI-powered presentation builder inspired by Gamma.ai. Turn a raw topic prompt or outline into a structured 16:9 slide deck with **7 Zod-validated adaptive layouts**, **8 editorial themes**, **textless AI editorial imagery**, and **native `.pptx` / PDF export**.
 
-![SlideSpark Preview](./docs/preview.png)
+![SlideSpark Preview](./public/preview.png)
 
 ---
 
