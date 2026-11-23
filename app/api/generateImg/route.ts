@@ -1,7 +1,8 @@
 import { OpenRouter } from '@openrouter/sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { Slide } from '@/lib/types';
 import path from 'path';
 import fs from 'fs/promises';
 import crypto from 'crypto';
@@ -18,12 +19,39 @@ function extractImageString(img: any): string | null {
 }
 
 export async function POST(req: NextRequest) {
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+
+    if (!session || !session.user) {
+        return NextResponse.json(
+            { error: "Unauthorized. Please log in to generate slide images." },
+            { status: 401 }
+        );
+    }
+
     const { slideId, title, content } = await req.json();
 
     if (!slideId || !title || !content) {
-        return NextResponse.json({
-            error: "mission variables"
-        });
+        return NextResponse.json(
+            { error: "Missing required fields: slideId, title, and content are required." },
+            { status: 400 }
+        );
+    }
+
+    const existingSlide = await prisma.slide.findFirst({
+        where: {
+            id: String(slideId),
+            presentation: { userId: session.user.id },
+        },
+        select: { id: true },
+    });
+
+    if (!existingSlide) {
+        return NextResponse.json(
+            { error: "Slide not found or access denied." },
+            { status: 404 }
+        );
     }
     try {
         const client = new OpenRouter({
