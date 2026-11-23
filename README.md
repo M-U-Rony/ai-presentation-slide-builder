@@ -1,5 +1,6 @@
 # SlideSpark — AI Presentation & Slide Deck Builder
 
+![CI](https://github.com/M-U-Rony/ai-presentation-slide-builder/actions/workflows/ci.yml/badge.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat&logo=next.js&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white)
