@@ -48,7 +48,7 @@ export default function Create() {
         headers: {
           "Content-type": "application/json"
         },
-        body: JSON.stringify({ promt, slidecnt, selectedThemeId })
+        body: JSON.stringify({ prompt: promt, slideCount: slidecnt, themeId: selectedThemeId })
       });
 
       if (!res.ok) {
