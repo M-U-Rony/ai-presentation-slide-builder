@@ -1,7 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Wand2, Layers, Sparkles, ArrowRight, Loader2, Compass } from 'lucide-react';
+import { Wand2, Layers, Sparkles, ArrowRight, Loader2, Compass, Gauge } from 'lucide-react';
+import { MAX_PROMPT_LENGTH } from '@/lib/constants';
+import type { UsageSummary } from '@/lib/api-client';
 
 interface promtpageProps {
   promt: string;
@@ -10,6 +12,9 @@ interface promtpageProps {
   setslidecnt: React.Dispatch<React.SetStateAction<number>>;
   loading: boolean;
   handleSubmit: (e: React.FormEvent) => void;
+  /** Decks left today, or null while unknown. */
+  decksLeft: number | null;
+  usage: UsageSummary | null;
 }
 
 export default function Promtpage({
@@ -19,7 +24,10 @@ export default function Promtpage({
   setslidecnt,
   loading,
   handleSubmit,
+  decksLeft,
+  usage,
 }: promtpageProps) {
+  const outOfDecks = decksLeft === 0;
   const suggestions = [
     "5-slide pitch deck for AI SaaS startup",
     "3-slide quarterly roadmap update",
@@ -41,10 +49,14 @@ export default function Promtpage({
             value={promt}
             onChange={(e) => setpromt(e.target.value)}
             disabled={loading}
+            maxLength={MAX_PROMPT_LENGTH}
             placeholder="Type your presentation topic or paste raw outline notes here... (e.g. '5-slide pitch deck for AI productivity app')"
             rows={4}
-            className="w-full pl-12 pr-4 pt-3.5 pb-3 bg-white text-[#1a3300] placeholder-[#1a3300]/40 rounded-[6px] border border-[#b6b6b6] focus:border-[#1a3300] focus:ring-1 focus:ring-[#1a3300] text-sm sm:text-base font-normal resize-none outline-none transition-all disabled:opacity-50"
+            className="w-full pl-12 pr-4 pt-3.5 pb-6 bg-white text-[#1a3300] placeholder-[#1a3300]/40 rounded-[6px] border border-[#b6b6b6] focus:border-[#1a3300] focus:ring-1 focus:ring-[#1a3300] text-sm sm:text-base font-normal resize-none outline-none transition-all disabled:opacity-50"
           />
+          <span className="absolute bottom-2.5 right-3 text-[11px] font-mono-tag text-[#1a3300]/50 pointer-events-none">
+            {promt.length}/{MAX_PROMPT_LENGTH}
+          </span>
         </div>
 
         {/* Quick Suggestion Chips */}
@@ -131,7 +143,7 @@ export default function Promtpage({
         {/* Primary Submit Button */}
         <button
           type="submit"
-          disabled={loading || !promt.trim() || slidecnt > 20 || slidecnt < 1}
+          disabled={loading || outOfDecks || !promt.trim() || slidecnt > 20 || slidecnt < 1}
           className="w-full min-h-[48px] px-6 py-3.5 rounded-[6px] bg-[#1a3300] hover:bg-[#1a3300]/90 disabled:bg-[#b6b6b6] disabled:text-white disabled:cursor-not-allowed text-[#fcfaf5] font-semibold text-base flex items-center justify-center gap-2.5 shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px] transition-all active:scale-[0.99] cursor-pointer"
         >
           {loading ? (
@@ -139,6 +151,8 @@ export default function Promtpage({
               <Loader2 className="w-5 h-5 animate-spin text-[#fcfaf5]" />
               <span>Generating Presentation Content...</span>
             </>
+          ) : outOfDecks ? (
+            <span>Daily deck limit reached, try again tomorrow</span>
           ) : slidecnt > 20 ? (
             <span>Maximum 20 slides allowed</span>
           ) : (
@@ -149,6 +163,17 @@ export default function Promtpage({
             </>
           )}
         </button>
+
+        {usage && (
+          <div className="flex items-center justify-center gap-2 text-[12px] font-mono-tag text-[#1a3300]/70">
+            <Gauge className="w-3.5 h-3.5" />
+            <span>
+              Left today: {Math.max(0, usage.deck.limit - usage.deck.used)}/{usage.deck.limit} decks
+              {" · "}
+              {Math.max(0, usage.image.limit - usage.image.used)}/{usage.image.limit} images
+            </span>
+          </div>
+        )}
 
       </form>
 

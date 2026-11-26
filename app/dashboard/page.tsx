@@ -19,6 +19,8 @@ import {
 import { allThemes } from "@/lib/theme";
 import { Slide } from "@/lib/types";
 import { authClient } from "@/lib/auth-client";
+import { apiFetch, isRetryable, type ApiFailure } from "@/lib/api-client";
+import ErrorBanner from "@/components/error-banner";
 
 interface PresentationItem {
   id: string;
@@ -42,35 +44,32 @@ export default function Dashboard() {
   }, [session, isPending, router]);
 
   const userId = session?.user?.id;
+  const [error, setError] = useState<ApiFailure | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!userId) {
-      if (!isPending) setLoading(false);
-      return;
-    }
+    if (!userId) return;
+    let cancelled = false;
 
-    async function fetchPresentations() {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/getUserPresentations");
-        if (!res.ok) {
-          console.error("Failed to fetch user presentations");
-          setLoading(false);
-          return;
-        }
-        const data = await res.json();
-        if (data.success) {
-          setPresentations(data.data || []);
-        }
-      } catch (error) {
-        console.error("Error loading dashboard history:", error);
-      } finally {
-        setLoading(false);
+    apiFetch<PresentationItem[]>("/api/getUserPresentations").then((res) => {
+      if (cancelled) return;
+      if (res.ok) {
+        setPresentations(res.data);
+        setError(null);
+      } else if (res.code === "UNAUTHORIZED") {
+        router.push("/signin");
+      } else {
+        setError(res);
       }
-    }
+      setLoading(false);
+    });
 
-    fetchPresentations();
-  }, [userId, isPending]);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, router, reloadKey]);
+
+  const showLoading = loading && (isPending || !!userId);
 
   return (
     <div className="min-h-screen bg-[#fcfaf5] text-[#1a3300] font-sans selection:bg-[#ffe95c] selection:text-[#1a3300] flex flex-col">
@@ -101,6 +100,22 @@ export default function Dashboard() {
           </Link>
         </div>
 
+        {error && (
+          <ErrorBanner
+            message={error.message}
+            onRetry={
+              isRetryable(error)
+                ? () => {
+                    setError(null);
+                    setLoading(true);
+                    setReloadKey((k) => k + 1);
+                  }
+                : undefined
+            }
+            onDismiss={() => setError(null)}
+          />
+        )}
+
         {/* HISTORY SECTION */}
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-[#b6b6b6] pb-3">
@@ -119,7 +134,7 @@ export default function Dashboard() {
           </div>
 
           {/* LOADING STATE */}
-          {loading ? (
+          {showLoading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-3 text-[#1a3300]/70">
               <Loader2 className="w-7 h-7 animate-spin text-[#1a3300]" />
               <p className="text-xs sm:text-sm font-semibold">

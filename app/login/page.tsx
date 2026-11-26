@@ -1,3 +1,5 @@
-import Signin from "../signin/page";
+import { redirect } from "next/navigation";
 
-export default Signin;
+export default function Login() {
+  redirect("/signin");
+}

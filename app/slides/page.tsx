@@ -4,7 +4,7 @@ import SlideCard from "@/components/slidecard";
 import Navbar from "@/components/navbar";
 import { allThemes } from "@/lib/theme";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import {
   Loader2,
   Presentation as PresentationIcon,
@@ -22,6 +22,8 @@ import Link from "next/link";
 import { Presentation } from "@/lib/types";
 import { authClient } from "@/lib/auth-client";
 import { exportPresentationToPPTX } from "@/lib/pptxExport";
+import { apiFetch, isRetryable, type ApiFailure, type UsageSummary } from "@/lib/api-client";
+import ErrorBanner from "@/components/error-banner";
 
 function SlideshowContent() {
   const searchParams = useSearchParams();
@@ -38,42 +40,61 @@ function SlideshowContent() {
   const [presentation, setPresentation] = useState<Presentation | null>(null);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
-  const [isGeneratingImg, setIsGeneratingImg] = useState(false);
+  // Id of the slide whose image is being generated (one at a time).
+  const [generatingSlideId, setGeneratingSlideId] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<ApiFailure | null>(null);
+  const [loadError, setLoadError] = useState<ApiFailure | null>(null);
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Re-generate / generate image for current active slide
-  async function generateImg() {
-    if (!presentation || !presentation.slides?.length) return;
-    const currentSlide = presentation.slides[activeSlideIndex];
-    if (!currentSlide || !currentSlide.id) return;
+  const refreshUsage = useCallback(async () => {
+    const res = await apiFetch<UsageSummary>("/api/usage");
+    if (res.ok) setUsage(res.data);
+  }, []);
 
-    try {
-      setIsGeneratingImg(true);
-      const res = await fetch("/api/generateImg", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slideId: currentSlide.id }),
-      });
+  useEffect(() => {
+    if (!session?.user) return;
+    let cancelled = false;
+    apiFetch<UsageSummary>("/api/usage").then((res) => {
+      if (!cancelled && res.ok) setUsage(res.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user]);
 
-      const data = await res.json();
-      if (data.success && data.data?.image) {
-        setPresentation((prev) => {
-          if (!prev) return prev;
-          const updatedSlides = [...prev.slides];
-          updatedSlides[activeSlideIndex] = {
-            ...updatedSlides[activeSlideIndex],
-            imgUrl: data.data.image,
-          };
-          return { ...prev, slides: updatedSlides };
-        });
-      }
-    } catch (error) {
-      console.error("Failed to generate image:", error);
-    } finally {
-      setIsGeneratingImg(false);
+  const imagesLeft = usage ? Math.max(0, usage.image.limit - usage.image.used) : null;
+
+  // Generate (or re-generate) the image for one slide. Results are applied by
+  // slide id, so switching slides while it runs cannot misplace the image.
+  async function generateImg(slideId: string) {
+    setGeneratingSlideId(slideId);
+    setImageError(null);
+    const res = await apiFetch<{ image: string }>("/api/generateImg", {
+      method: "POST",
+      body: JSON.stringify({ slideId }),
+    });
+    setGeneratingSlideId(null);
+    void refreshUsage();
+
+    if (!res.ok) {
+      if (res.code === "UNAUTHORIZED") router.push("/signin");
+      else setImageError(res);
+      return;
     }
+    setPresentation((prev) =>
+      prev
+        ? {
+            ...prev,
+            slides: prev.slides.map((s) =>
+              s.id === slideId ? { ...s, imgUrl: res.data.image } : s,
+            ),
+          }
+        : prev,
+    );
   }
 
   async function exportToPPTX() {
@@ -102,32 +123,25 @@ function SlideshowContent() {
   }
 
   useEffect(() => {
-    if (!id) {
-      setLoading(false);
-      return;
-    }
+    if (!id) return;
 
     async function getPresentation() {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/getPresentation?id=${id}`);
-        if (!res.ok) {
-          console.error("Error in fetching presentation");
-          setLoading(false);
-          return;
-        }
-
-        const data = await res.json();
-        setPresentation(data.data);
-      } catch (error) {
-        console.error("Failed to load presentation:", error);
-      } finally {
-        setLoading(false);
+      setLoading(true);
+      setLoadError(null);
+      const res = await apiFetch<Presentation>(`/api/getPresentation?id=${encodeURIComponent(id!)}`);
+      if (res.ok) {
+        setPresentation(res.data);
+      } else if (res.code === "UNAUTHORIZED") {
+        router.push("/signin");
+        return;
+      } else {
+        setLoadError(res);
       }
+      setLoading(false);
     }
 
     getPresentation();
-  }, [id]);
+  }, [id, router, reloadKey]);
 
   // Fullscreen presentation handlers
   const enterFullscreen = () => {
@@ -202,11 +216,24 @@ function SlideshowContent() {
 
   const currentSlide = presentation?.slides?.[activeSlideIndex];
 
-  if (loading) {
+  if (loading && id) {
     return (
       <div className="h-screen w-screen bg-[#fcfaf5] flex flex-col items-center justify-center gap-3 text-[#1a3300]">
         <Loader2 className="w-8 h-8 animate-spin text-[#1a3300]" />
         <p className="text-sm font-semibold">Opening presentation studio...</p>
+      </div>
+    );
+  }
+
+  if (loadError && loadError.code !== "NOT_FOUND") {
+    return (
+      <div className="h-screen w-screen bg-[#fcfaf5] flex flex-col items-center justify-center p-6 text-[#1a3300]">
+        <div className="max-w-md w-full">
+          <ErrorBanner
+            message={loadError.message}
+            onRetry={isRetryable(loadError) ? () => setReloadKey((k) => k + 1) : undefined}
+          />
+        </div>
       </div>
     );
   }
@@ -287,7 +314,7 @@ function SlideshowContent() {
                   subtitle={currentSlide.subtitle}
                   content={currentSlide.content}
                   imgUrl={currentSlide.imgUrl}
-                  isGeneratingImg={isGeneratingImg}
+                  isGeneratingImg={!!currentSlide.id && generatingSlideId === currentSlide.id}
                   isSelected={false}
                   slideNumber={activeSlideIndex + 1}
                 />
@@ -386,6 +413,19 @@ function SlideshowContent() {
 
           {/* CENTER MAIN STAGE */}
           <main className="flex-1 h-full bg-[#f1f1f1] p-4 md:p-6 lg:p-8 flex flex-col items-center justify-between overflow-auto relative">
+            {imageError && (
+              <div className="w-full max-w-4xl mb-3">
+                <ErrorBanner
+                  message={imageError.message}
+                  onRetry={
+                    isRetryable(imageError) && currentSlide?.id
+                      ? () => void generateImg(currentSlide.id!)
+                      : undefined
+                  }
+                  onDismiss={() => setImageError(null)}
+                />
+              </div>
+            )}
             <div className="flex-1 w-full max-w-4xl flex items-center justify-center min-h-0">
               <div className="w-full shadow-[rgba(0,0,0,0.06)_0px_2px_8px_0px] rounded-[12px] overflow-hidden border border-[#b6b6b6] transition-all duration-200 relative group bg-[#fcfaf5]">
                 {/* Options Dropdown Menu Button */}
@@ -404,25 +444,25 @@ function SlideshowContent() {
                       <button
                         onClick={() => {
                           setShowMenu(false);
-                          generateImg();
+                          if (currentSlide?.id) void generateImg(currentSlide.id);
                         }}
-                        disabled={isGeneratingImg}
-                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#1a3300] hover:bg-[#ffe95c] rounded-[4px] transition w-full text-left cursor-pointer disabled:opacity-50"
+                        disabled={!!generatingSlideId || imagesLeft === 0 || !currentSlide?.id}
+                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#1a3300] hover:bg-[#ffe95c] rounded-[4px] transition w-full text-left cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <ImageIcon className="w-4 h-4 text-[#1a3300]" />
-                        <span>Generate Visual</span>
+                        {currentSlide?.imgUrl ? (
+                          <RefreshCw className="w-4 h-4 text-[#1a3300]" />
+                        ) : (
+                          <ImageIcon className="w-4 h-4 text-[#1a3300]" />
+                        )}
+                        <span>{currentSlide?.imgUrl ? "Re-generate Image" : "Generate Visual"}</span>
                       </button>
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          generateImg();
-                        }}
-                        disabled={isGeneratingImg}
-                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#1a3300] hover:bg-[#ffe95c] rounded-[4px] transition w-full text-left cursor-pointer disabled:opacity-50"
-                      >
-                        <RefreshCw className="w-4 h-4 text-[#1a3300]" />
-                        <span>Re-generate Image</span>
-                      </button>
+                      {usage && (
+                        <p className="px-3 pt-1 pb-0.5 text-[10px] font-mono-tag text-[#1a3300]/60">
+                          {imagesLeft === 0
+                            ? "Daily image limit reached"
+                            : `${imagesLeft}/${usage.image.limit} images left today`}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -435,7 +475,7 @@ function SlideshowContent() {
                     subtitle={currentSlide.subtitle}
                     content={currentSlide.content}
                     imgUrl={currentSlide.imgUrl}
-                    isGeneratingImg={isGeneratingImg}
+                    isGeneratingImg={!!currentSlide.id && generatingSlideId === currentSlide.id}
                     isSelected={false}
                     slideNumber={activeSlideIndex + 1}
                   />
