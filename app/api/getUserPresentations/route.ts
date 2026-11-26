@@ -8,13 +8,20 @@ export const GET = handleRoute("getUserPresentations", async () => {
 
   const presentations = await prisma.presentation.findMany({
     where: { userId: session.user.id },
-    include: {
+    // Only what the dashboard cards need: deck info plus the first slide.
+    select: {
+      id: true,
+      title: true,
+      totalSlides: true,
+      themeColors: true,
+      createdAt: true,
       slides: {
         orderBy: { slidenumber: "asc" },
         take: 1,
+        select: { id: true, title: true, subtitle: true, slideLayout: true, content: true, imgUrl: true, slidenumber: true },
       },
     },
-    orderBy: { id: "desc" },
+    orderBy: { createdAt: "desc" },
   });
 
   return apiOk(presentations);

@@ -46,7 +46,7 @@
 
 ### Prerequisites
 
-- Node.js 20+ (or Bun)
+- [Bun](https://bun.sh) (the repo's lockfile is `bun.lock`)
 - PostgreSQL database (Neon, Supabase, or local PostgreSQL)
 - OpenRouter API key
 
@@ -55,7 +55,7 @@
 ```bash
 git clone https://github.com/M-U-Rony/ai-presentation-slide-builder.git
 cd ai-presentation-slide-builder
-npm install
+bun install
 ```
 
 ### 2. Configure Environment Variables
@@ -67,30 +67,61 @@ cp .env.example .env
 Fill in `.env`:
 
 ```env
-OPENROUTER_API_KEY=""
+# Required
 DATABASE_URL=""
 BETTER_AUTH_SECRET=""
 BETTER_AUTH_URL="http://localhost:3000"
+OPENROUTER_API_KEY=""
+TEXT_GENERATION_MODEL=""   # OpenRouter model id for slide text
+IMAGE_GENERATION_MODEL=""  # OpenRouter model id for slide images
+
+# Optional: GitHub sign-in is enabled only when both are set
 GITHUB_CLIENT_ID=""
 GITHUB_CLIENT_SECRET=""
-Text_Generation_Model=""
-Image_Generation_Model=""
 ```
 
-### 3. Push Database Schema
+The server checks the required variables at startup and exits with a clear
+message if one is missing. The older names `Text_Generation_Model` /
+`Image_Generation_Model` are still accepted.
+
+### 3. Apply Database Migrations
 
 ```bash
-npx prisma db push
+bunx prisma migrate deploy
+bunx prisma generate
 ```
 
 ### 4. Run Development Server
 
 ```bash
-npm run dev
-# or: bun dev
+bun run dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000).
+
+### Other scripts
+
+```bash
+bun run lint    # ESLint
+bun run build   # production build
+```
+
+---
+
+## Usage Limits
+
+To keep OpenRouter costs bounded, each user can generate **10 decks and 10
+images per day** (server-local calendar day). Failed generations count too,
+and only one generation (deck or image) runs per user at a time. Limits are
+set in `lib/constants.ts`.
+
+## Local Development Notes
+
+- Generated slide images are written to `public/generated/`. They are served
+  under `bun run dev`; with `bun run build && bun run start`, Next.js does not
+  serve files added to `public/` after the build, so new images return 404.
+- AI calls time out (90s for text, 120s for images) and a malformed text
+  response is retried once before failing.
 
 ---
 
@@ -112,7 +143,8 @@ docker run -d -p 3000:3000 --name slidespark-app --env-file .env slidespark
 │   │   ├── generateSlides/         # OpenRouter structured slide deck generation
 │   │   ├── generateImg/            # Authenticated AI slide artwork generation
 │   │   ├── getPresentation/        # Single deck fetch
-│   │   └── getUserPresentations/   # User deck history
+│   │   ├── getUserPresentations/   # User deck history
+│   │   └── usage/                  # Today's quota usage
 │   ├── create/                     # Interactive prompt & theme builder
 │   ├── dashboard/                  # Saved presentation workspace
 │   ├── slides/                     # 16:9 studio viewer & fullscreen presenter
@@ -121,16 +153,22 @@ docker run -d -p 3000:3000 --name slidespark-app --env-file .env slidespark
 │   ├── slide-layouts/              # 7 adaptive layout renderers
 │   ├── slide-themes/               # 8 editorial SVG theme overlays
 │   ├── landing.tsx                 # Landing hero & showcase
-│   ├── promtpage.tsx               # Prompt & slide-count controls
+│   ├── prompt-form.tsx             # Prompt & slide-count controls
+│   ├── error-banner.tsx            # Inline error banner with retry
+│   ├── signin-form.tsx / signup-form.tsx
 │   └── slidecard.tsx               # 16:9 slide canvas & filmstrip card
 ├── lib/
+│   ├── ai/                         # OpenRouter client, prompts, deck & image generation
+│   ├── api.ts / api-client.ts      # Shared API response/error helpers (server & client)
+│   ├── env.ts                      # Environment validation
+│   ├── usage.ts                    # Daily quota & one-at-a-time generation lock
 │   ├── slideLayouts.ts             # Zod discriminated union schemas for all 7 layouts
 │   ├── pptxExport.ts               # Native .pptx deck exporter (pptxgenjs)
 │   ├── theme.ts                    # 8 editorial themes + PPTX color tokens
 │   ├── auth.ts / auth-client.ts    # Better-Auth server & client setup
 │   └── prisma.ts                   # Prisma 7 pg-adapter singleton
 ├── prisma/
-│   └── schema.prisma               # User, Session, Account, Presentation, Slide models
+│   └── schema.prisma               # User, Session, Account, Presentation, Slide, UsageEvent
 └── Dockerfile
 ```
 

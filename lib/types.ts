@@ -1,12 +1,12 @@
 import { SlideLayout } from "./slideLayouts";
-import { ThemeColors } from "./theme";
 
 export interface Presentation {
   id: string;
   title: string;
   totalSlides: number;
   slides: Slide[];
-  themeColors: ThemeColors | string;
+  /** Theme id (see lib/theme.ts). The column is named themeColors for historical reasons. */
+  themeColors: string;
   userId?: string;
   createdAt?: string | Date;
   updatedAt?: string | Date;

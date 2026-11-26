@@ -54,9 +54,9 @@ export default function SignupForm({ githubEnabled }: { githubEnabled: boolean }
       }
 
       router.push("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Sign up failed:", err);
-      setErrorMsg(err.message || "Failed to create account. Please try again.");
+      setErrorMsg((err instanceof Error && err.message) || "Failed to create account. Please try again.");
       setLoading(false);
     }
   }
@@ -69,7 +69,7 @@ export default function SignupForm({ githubEnabled }: { githubEnabled: boolean }
         provider: "github",
         callbackURL: "/dashboard",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("GitHub sign in failed:", err);
       setErrorMsg("Failed to connect to GitHub authentication. Please try again.");
       setGithubLoading(false);
