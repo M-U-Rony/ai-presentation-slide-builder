@@ -4,3 +4,7 @@ export const MIN_PASSWORD_LENGTH = 8;
 /** Daily per-user generation quotas. Failed generations count too. */
 export const DAILY_DECK_LIMIT = 10;
 export const DAILY_IMAGE_LIMIT = 10;
+
+export const MAX_PROMPT_LENGTH = 1000;
+export const MIN_SLIDES = 1;
+export const MAX_SLIDES = 20;
