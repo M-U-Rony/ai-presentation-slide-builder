@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getEnv } from '@/lib/env';
 import { ApiError, apiOk, handleRoute, parseBody, requireSession } from '@/lib/api';
+import { withGeneration } from '@/lib/usage';
 import { prisma } from '@/lib/prisma';
 import path from 'path';
 import fs from 'fs/promises';
@@ -43,11 +44,12 @@ export const POST = handleRoute("generateImg", async (req: NextRequest) => {
         throw new ApiError("NOT_FOUND", "Slide not found.");
     }
 
-        const client = new OpenRouter({
-            apiKey: env.OPENROUTER_API_KEY
-        });
+    const { publicImgUrl, updatedSlide } = await withGeneration(session.user.id, "IMAGE", async () => {
+            const client = new OpenRouter({
+                apiKey: env.OPENROUTER_API_KEY
+            });
 
-        const SYSTEM_PROMPT = `You are an elite editorial presentation photographer and commercial visual director.
+            const SYSTEM_PROMPT = `You are an elite editorial presentation photographer and commercial visual director.
 Your task is to generate a breathtaking, ultra-photorealistic, high-end photograph suitable for modern Fortune 500 presentation slide decks.
 
 PHOTOREALISM & AESTHETIC DIRECTIVES:
@@ -58,84 +60,86 @@ PHOTOREALISM & AESTHETIC DIRECTIVES:
    - NO 3D cartoon renders, NO low-poly CGI, NO plastic surreal mannequins, NO clip art.
    - Absolutely NO text, letters, words, numbers, labels, typography, or watermarks in the image.`;
 
-        const completion = await client.chat.send({
-            chatRequest: {
-                model: env.IMAGE_GENERATION_MODEL,
-                messages: [
-                    {
-                        role: 'system',
-                        content: SYSTEM_PROMPT,
-                    },
-                    {
-                        role: 'user',
-                        content: `High-end, photorealistic commercial photography capturing the concept: "${title}". Context: ${Array.isArray(content) ? content.join('. ') : content}. Style: Authentic real-world scene, 8K UHD, cinematic studio lighting, photorealistic, professional editorial composition. Strictly NO text, NO words, NO typography.`,
-                    },
-                ],
+            const completion = await client.chat.send({
+                chatRequest: {
+                    model: env.IMAGE_GENERATION_MODEL,
+                    messages: [
+                        {
+                            role: 'system',
+                            content: SYSTEM_PROMPT,
+                        },
+                        {
+                            role: 'user',
+                            content: `High-end, photorealistic commercial photography capturing the concept: "${title}". Context: ${Array.isArray(content) ? content.join('. ') : content}. Style: Authentic real-world scene, 8K UHD, cinematic studio lighting, photorealistic, professional editorial composition. Strictly NO text, NO words, NO typography.`,
+                        },
+                    ],
+                }
+            });
+
+            if (!completion || !('choices' in completion) || !completion.choices.length) {
+                throw new ApiError("AI_PROVIDER_ERROR", "Failed to retrieve an image from the AI provider.");
             }
-        });
 
-        if (!completion || !('choices' in completion) || !completion.choices.length) {
-            throw new ApiError("AI_PROVIDER_ERROR", "Failed to retrieve an image from the AI provider.");
-        }
+            const message = completion.choices[0].message as any;
 
-        const message = completion.choices[0].message as any;
+            let aiResponse: string | null = null;
 
-        let aiResponse: string | null = null;
-
-        // 1. OpenRouter image generation models return images array in message.images
-        if (message?.images && Array.isArray(message.images) && message.images.length > 0) {
-            aiResponse = extractImageString(message.images[0]);
-        }
+            // 1. OpenRouter image generation models return images array in message.images
+            if (message?.images && Array.isArray(message.images) && message.images.length > 0) {
+                aiResponse = extractImageString(message.images[0]);
+            }
         
-        if (!aiResponse && typeof message?.content === 'string') {
-            aiResponse = message.content;
-        } else if (!aiResponse && Array.isArray(message?.content)) {
-            for (const part of message.content) {
-                const extracted = extractImageString(part);
-                if (extracted) {
-                    aiResponse = extracted;
-                    break;
+            if (!aiResponse && typeof message?.content === 'string') {
+                aiResponse = message.content;
+            } else if (!aiResponse && Array.isArray(message?.content)) {
+                for (const part of message.content) {
+                    const extracted = extractImageString(part);
+                    if (extracted) {
+                        aiResponse = extracted;
+                        break;
+                    }
                 }
             }
-        }
 
-        if (!aiResponse) {
-            console.error("No image found in OpenRouter completion message:", message);
-            throw new ApiError("AI_BAD_RESPONSE", "No image returned from AI provider.");
-        }
+            if (!aiResponse) {
+                console.error("No image found in OpenRouter completion message:", message);
+                throw new ApiError("AI_BAD_RESPONSE", "No image returned from AI provider.");
+            }
 
-        const fileName = `slide_${slideId}_${crypto.randomUUID()}.png`;
-        const uploadDir = path.join(process.cwd(), 'public', 'generated');
-        const filePath = path.join(uploadDir, fileName);
+            const fileName = `slide_${slideId}_${crypto.randomUUID()}.png`;
+            const uploadDir = path.join(process.cwd(), 'public', 'generated');
+            const filePath = path.join(uploadDir, fileName);
 
-        await fs.mkdir(uploadDir, { recursive: true });
+            await fs.mkdir(uploadDir, { recursive: true });
 
-        if (aiResponse.startsWith('http://') || aiResponse.startsWith('https://')) {
-            // Download remote image
-            const imageRes = await fetch(aiResponse);
-            if (imageRes.ok) {
-                const arrayBuffer = await imageRes.arrayBuffer();
-                await fs.writeFile(filePath, Buffer.from(arrayBuffer));
+            if (aiResponse.startsWith('http://') || aiResponse.startsWith('https://')) {
+                // Download remote image
+                const imageRes = await fetch(aiResponse);
+                if (imageRes.ok) {
+                    const arrayBuffer = await imageRes.arrayBuffer();
+                    await fs.writeFile(filePath, Buffer.from(arrayBuffer));
+                } else {
+                    console.error("Failed to download image from URL:", aiResponse);
+                }
             } else {
-                console.error("Failed to download image from URL:", aiResponse);
+                // Decode base64 image data
+                const base64Data = aiResponse.replace(/^data:image\/\w+;base64,/, '').trim();
+                const imageBuffer = Buffer.from(base64Data, 'base64');
+                await fs.writeFile(filePath, imageBuffer);
             }
-        } else {
-            // Decode base64 image data
-            const base64Data = aiResponse.replace(/^data:image\/\w+;base64,/, '').trim();
-            const imageBuffer = Buffer.from(base64Data, 'base64');
-            await fs.writeFile(filePath, imageBuffer);
-        }
 
-        const publicImgUrl = `/generated/${fileName}`;
+            const publicImgUrl = `/generated/${fileName}`;
 
-        const updatedSlide = await prisma.slide.update({
-            where: {
-                id: slideId
-            },
-            data: {
-                imgUrl: publicImgUrl
-            }
-        });
+            const updatedSlide = await prisma.slide.update({
+                where: {
+                    id: slideId
+                },
+                data: {
+                    imgUrl: publicImgUrl
+                }
+            });
+            return { publicImgUrl, updatedSlide };
+    });
 
         return apiOk({
             image: publicImgUrl,
