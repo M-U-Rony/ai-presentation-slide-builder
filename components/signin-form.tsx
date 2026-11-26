@@ -47,9 +47,9 @@ export default function SigninForm({ githubEnabled }: { githubEnabled: boolean }
       }
 
       router.push("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Sign in failed:", err);
-      setErrorMsg(err.message || "Failed to sign in. Please check your credentials.");
+      setErrorMsg((err instanceof Error && err.message) || "Failed to sign in. Please check your credentials.");
       setLoading(false);
     }
   }
@@ -62,7 +62,7 @@ export default function SigninForm({ githubEnabled }: { githubEnabled: boolean }
         provider: "github",
         callbackURL: "/dashboard",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Sign in failed:", err);
       setErrorMsg("Failed to connect to GitHub authentication. Please try again.");
       setGithubLoading(false);

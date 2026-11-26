@@ -27,7 +27,6 @@ interface PresentationItem {
   title: string;
   totalSlides: number;
   themeColors: string;
-  userId: string;
   slides?: Slide[];
 }
 
@@ -152,7 +151,7 @@ export default function Dashboard() {
                   No Presentations Found
                 </h3>
                 <p className="text-[#1a3300]/70 text-xs leading-relaxed">
-                  You haven't generated any slide presentations yet. Click below
+                  You haven&apos;t generated any slide presentations yet. Click below
                   to build your first deck!
                 </p>
               </div>

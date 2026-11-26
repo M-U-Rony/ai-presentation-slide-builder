@@ -13,21 +13,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: "20"
+          bun-version: 1.4.4
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: bun install --frozen-lockfile
 
       - name: Generate Prisma Client
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/slidespark
-        run: npx prisma generate
+        run: bunx prisma generate
 
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: bunx tsc --noEmit
+
+      - name: Lint
+        run: bun run lint
 
       - name: Build Next.js app
         env:
@@ -35,7 +38,7 @@ jobs:
           BETTER_AUTH_SECRET: ci-build-placeholder-secret
           BETTER_AUTH_URL: http://localhost:3000
           OPENROUTER_API_KEY: ci-placeholder
-        run: npm run build
+        run: bun run build
 
   docker-build:
     runs-on: ubuntu-latest

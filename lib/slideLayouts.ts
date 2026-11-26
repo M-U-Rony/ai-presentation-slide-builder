@@ -441,26 +441,3 @@ export function resolveSlideLayoutData({
     }
   }
 }
-
-/**
- * Parses slide content with fallback for legacy string arrays
- */
-export function parseSlideData(data: any): SlideLayout {
-  if (!data) {
-    return {
-      layoutType: "title_bullets",
-      title: "Untitled Slide",
-      subtitle: "",
-      bullets: [],
-    };
-  }
-
-  return resolveSlideLayoutData({
-    title: data.title,
-    subtitle: data.subtitle,
-    slideLayout: data.slideLayout,
-    content: data.content,
-    imgUrl: data.imgUrl,
-    slideNumber: data.slideNumber || data.slidenumber,
-  });
-}

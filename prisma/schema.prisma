@@ -55,6 +55,7 @@ model Presentation {
   id          String   @id @default(cuid())
   title       String
   totalSlides Int
+  /// Theme id from lib/theme.ts (named themeColors for historical reasons).
   themeColors String
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)

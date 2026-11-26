@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import Promtpage from "@/components/promtpage";
+import PromptForm from "@/components/prompt-form";
 import SlideCard from "@/components/slidecard";
 import Navbar from "@/components/navbar";
 import { displayThemes } from "@/lib/theme";
@@ -23,9 +23,9 @@ export default function Create() {
     }
   }, [session, isPending, router]);
 
-  const [promt, setpromt] = useState<string>('');
-  const [slidecnt, setslidecnt] = useState<number>(5);
-  const [loading, setloading] = useState(false);
+  const [prompt, setPrompt] = useState<string>('');
+  const [slideCount, setSlideCount] = useState<number>(5);
+  const [loading, setLoading] = useState(false);
   const [selectedThemeId, setSelectedThemeId] = useState<string>(displayThemes[0].id);
   const [error, setError] = useState<ApiFailure | null>(null);
   const [usage, setUsage] = useState<UsageSummary | null>(null);
@@ -49,13 +49,13 @@ export default function Create() {
   const decksLeft = usage ? Math.max(0, usage.deck.limit - usage.deck.used) : null;
 
   async function generate() {
-    if (promt.trim().length === 0 || slidecnt > 20 || slidecnt < 1) return;
+    if (prompt.trim().length === 0 || slideCount > 20 || slideCount < 1) return;
 
-    setloading(true);
+    setLoading(true);
     setError(null);
     const res = await apiFetch<{ presentationId: string }>('/api/generateSlides', {
       method: 'POST',
-      body: JSON.stringify({ prompt: promt, slideCount: slidecnt, themeId: selectedThemeId }),
+      body: JSON.stringify({ prompt, slideCount, themeId: selectedThemeId }),
     });
 
     if (res.ok) {
@@ -63,7 +63,7 @@ export default function Create() {
       return;
     }
 
-    setloading(false);
+    setLoading(false);
     if (res.code === 'UNAUTHORIZED') {
       router.push('/signin');
       return;
@@ -103,14 +103,14 @@ export default function Create() {
       )}
 
       {/* Prompt Engine Container */}
-      <Promtpage 
+      <PromptForm 
         decksLeft={decksLeft}
         usage={usage}
-        promt={promt} 
-        setpromt={setpromt} 
+        prompt={prompt} 
+        setPrompt={setPrompt} 
         loading={loading} 
-        slidecnt={slidecnt} 
-        setslidecnt={setslidecnt} 
+        slideCount={slideCount} 
+        setSlideCount={setSlideCount} 
         handleSubmit={handleSubmit}
       />
 
