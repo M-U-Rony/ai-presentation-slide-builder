@@ -60,7 +60,7 @@ export default function Create() {
       const data = await res.json();
 
       setloading(false);
-      router.push(`/slides?id=${data.presentationId}`);
+      router.push(`/slides?id=${data.data.presentationId}`);
 
     } catch (error) {
       console.log(error);

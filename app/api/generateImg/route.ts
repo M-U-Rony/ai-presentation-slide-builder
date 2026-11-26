@@ -1,7 +1,8 @@
 import { OpenRouter } from '@openrouter/sdk';
-import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { getEnv } from '@/lib/env';
+import { ApiError, apiOk, handleRoute, parseBody, requireSession } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import path from 'path';
 import fs from 'fs/promises';
@@ -18,44 +19,32 @@ function extractImageString(img: any): string | null {
     return null;
 }
 
-export async function POST(req: NextRequest) {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
+const BodySchema = z.object({
+    slideId: z.string().min(1),
+    title: z.string().min(1),
+    content: z.union([z.string(), z.array(z.string())]),
+}, { error: "Missing required fields: slideId, title, and content are required." });
 
-    if (!session || !session.user) {
-        return NextResponse.json(
-            { error: "Unauthorized. Please log in to generate slide images." },
-            { status: 401 }
-        );
-    }
+export const POST = handleRoute("generateImg", async (req: NextRequest) => {
+    const session = await requireSession();
+    const env = getEnv();
 
-    const { slideId, title, content } = await req.json();
-
-    if (!slideId || !title || !content) {
-        return NextResponse.json(
-            { error: "Missing required fields: slideId, title, and content are required." },
-            { status: 400 }
-        );
-    }
+    const { slideId, title, content } = await parseBody(req, BodySchema);
 
     const existingSlide = await prisma.slide.findFirst({
         where: {
-            id: String(slideId),
+            id: slideId,
             presentation: { userId: session.user.id },
         },
         select: { id: true },
     });
 
     if (!existingSlide) {
-        return NextResponse.json(
-            { error: "Slide not found or access denied." },
-            { status: 404 }
-        );
+        throw new ApiError("NOT_FOUND", "Slide not found.");
     }
-    try {
+
         const client = new OpenRouter({
-            apiKey: process.env.OPENROUTER_API_KEY
+            apiKey: env.OPENROUTER_API_KEY
         });
 
         const SYSTEM_PROMPT = `You are an elite editorial presentation photographer and commercial visual director.
@@ -71,7 +60,7 @@ PHOTOREALISM & AESTHETIC DIRECTIVES:
 
         const completion = await client.chat.send({
             chatRequest: {
-                model: process.env.Image_Generation_Model,
+                model: env.IMAGE_GENERATION_MODEL,
                 messages: [
                     {
                         role: 'system',
@@ -86,10 +75,7 @@ PHOTOREALISM & AESTHETIC DIRECTIVES:
         });
 
         if (!completion || !('choices' in completion) || !completion.choices.length) {
-            return NextResponse.json(
-                { success: false, error: 'Failed to retrieve slide content from AI provider.' },
-                { status: 502 }
-            );
+            throw new ApiError("AI_PROVIDER_ERROR", "Failed to retrieve an image from the AI provider.");
         }
 
         const message = completion.choices[0].message as any;
@@ -115,10 +101,7 @@ PHOTOREALISM & AESTHETIC DIRECTIVES:
 
         if (!aiResponse) {
             console.error("No image found in OpenRouter completion message:", message);
-            return NextResponse.json(
-                { success: false, error: 'No image returned from AI provider.' },
-                { status: 500 }
-            );
+            throw new ApiError("AI_BAD_RESPONSE", "No image returned from AI provider.");
         }
 
         const fileName = `slide_${slideId}_${crypto.randomUUID()}.png`;
@@ -147,30 +130,15 @@ PHOTOREALISM & AESTHETIC DIRECTIVES:
 
         const updatedSlide = await prisma.slide.update({
             where: {
-                id: String(slideId)
+                id: slideId
             },
             data: {
                 imgUrl: publicImgUrl
             }
         });
 
-        return NextResponse.json({
-            success: true,
+        return apiOk({
             image: publicImgUrl,
             slide: updatedSlide
         });
-    }
-
-    catch (error) {
-        console.log(error);
-
-        return NextResponse.json(
-            {
-                error: "Failed to generate image",
-                details: error
-            },
-            { status: 500 }
-        );
-    }
-
-}
+});

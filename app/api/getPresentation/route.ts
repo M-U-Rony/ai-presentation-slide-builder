@@ -1,64 +1,29 @@
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { ApiError, apiOk, handleRoute, requireSession } from "@/lib/api";
 
-export async function GET(req: NextRequest) {
-  const searchParams = req.nextUrl.searchParams;
-  const id = searchParams.get("id");
+export const GET = handleRoute("getPresentation", async (req: NextRequest) => {
+  const session = await requireSession();
 
+  const id = req.nextUrl.searchParams.get("id");
   if (!id) {
-    return NextResponse.json(
-      { success: false, error: "Presentation ID is required" },
-      { status: 400 }
-    );
+    throw new ApiError("VALIDATION_ERROR", "Presentation ID is required.");
   }
 
-  try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized. Please sign in." },
-        { status: 401 }
-      );
-    }
-
-    const presentation = await prisma.presentation.findUnique({
-      where: { id },
-      include: {
-        slides: {
-          orderBy: { slidenumber: "asc" },
-        },
+  // Ownership is part of the query, so "not yours" and "doesn't exist" are
+  // indistinguishable to the caller (both 404).
+  const presentation = await prisma.presentation.findFirst({
+    where: { id, userId: session.user.id },
+    include: {
+      slides: {
+        orderBy: { slidenumber: "asc" },
       },
-    });
+    },
+  });
 
-    if (!presentation) {
-      return NextResponse.json(
-        { success: false, error: "Presentation not found" },
-        { status: 404 }
-      );
-    }
-
-    // IDOR Protection: Verify that the requesting user owns this presentation
-    if (presentation.userId !== session.user.id) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden: You do not have permission to view this presentation." },
-        { status: 403 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: presentation,
-    });
-  } catch (error) {
-    console.error("Error fetching presentation:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 }
-    );
+  if (!presentation) {
+    throw new ApiError("NOT_FOUND", "Presentation not found.");
   }
-}
+
+  return apiOk(presentation);
+});

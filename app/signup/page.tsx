@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { MIN_PASSWORD_LENGTH } from "@/lib/constants";
 import { ArrowLeft, Loader2, Mail, Lock, User, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -30,8 +31,8 @@ export default function SignUp() {
       setErrorMsg("Please provide both email and password.");
       return;
     }
-    if (password.length < 6) {
-      setErrorMsg("Password must be at least 6 characters long.");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setErrorMsg(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
       return;
     }
 
@@ -186,7 +187,7 @@ export default function SignUp() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
                   className="w-full pl-9 pr-10 py-2.5 bg-[#fcfaf5] text-[#1a3300] placeholder-[#1a3300]/40 rounded-[6px] border border-[#b6b6b6] focus:border-[#1a3300] focus:ring-1 focus:ring-[#1a3300] text-sm outline-none transition-all"
                 />
                 <button
