@@ -18,6 +18,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   presentations Presentation[]
+  usageEvents   UsageEvent[]
 }
 
 model Session {
@@ -60,6 +61,8 @@ model Presentation {
   slides      Slide[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([userId, createdAt])
 }
 
 model Slide {
@@ -74,6 +77,8 @@ model Slide {
   presentation   Presentation @relation(fields: [presentationId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@index([presentationId])
 }
 
 model verification {
@@ -83,4 +88,30 @@ model verification {
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+enum UsageKind {
+  DECK
+  IMAGE
+}
+
+enum UsageStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+/// One row per generation request. Rows are written *before* calling the AI
+/// provider (reserving quota), so failed generations still count.
+model UsageEvent {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind       UsageKind
+  status     UsageStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+  finishedAt DateTime?
+
+  @@index([userId, createdAt])
+  @@index([userId, status])
 }

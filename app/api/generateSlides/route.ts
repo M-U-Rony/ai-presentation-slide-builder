@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { Slide } from '@/lib/types';
 import { getEnv } from '@/lib/env';
 import { ApiError, apiOk, handleRoute, parseBody, requireSession } from '@/lib/api';
+import { withGeneration } from '@/lib/usage';
 
 const BodySchema = z.object({
   promt: z.string().min(1, "Prompt is required."),
@@ -23,11 +24,12 @@ export const POST = handleRoute("generateSlides", async (req: NextRequest) => {
       throw new ApiError("VALIDATION_ERROR", "At maximum 20 slides can be generated.");
     }
 
-    const client = new OpenRouter({
-      apiKey: env.OPENROUTER_API_KEY
-    });
+    const newPresentation = await withGeneration(session.user.id, "DECK", async () => {
+      const client = new OpenRouter({
+        apiKey: env.OPENROUTER_API_KEY
+      });
 
-const SYSTEM_PROMPT = `You are an expert AI presentation slide builder like Gamma.ai.
+  const SYSTEM_PROMPT = `You are an expert AI presentation slide builder like Gamma.ai.
 Your task is to generate engaging slide deck content based on a user topic and requested slide count.
 
 AVAILABLE SLIDE LAYOUTS:
@@ -81,50 +83,52 @@ RULES:
 4. Create EXACTLY the requested slide count.`;
 
 
-    const completion = await client.chat.send({
-      chatRequest: {
-        model: env.TEXT_GENERATION_MODEL,
-        messages: [
-          {
-            role: 'system',
-            content: SYSTEM_PROMPT,
-          },
-          {
-            role: 'user',
-            content: `Topic: "${promt}". Create exactly ${slidecnt} slides.`,
-          },
-        ],
+      const completion = await client.chat.send({
+        chatRequest: {
+          model: env.TEXT_GENERATION_MODEL,
+          messages: [
+            {
+              role: 'system',
+              content: SYSTEM_PROMPT,
+            },
+            {
+              role: 'user',
+              content: `Topic: "${promt}". Create exactly ${slidecnt} slides.`,
+            },
+          ],
+        }
+      });
+
+      if (!completion || !('choices' in completion) || !completion.choices.length) {
+        throw new ApiError("AI_PROVIDER_ERROR", "Failed to retrieve slide content from AI provider.");
       }
-    });
 
-    if (!completion || !('choices' in completion) || !completion.choices.length) {
-      throw new ApiError("AI_PROVIDER_ERROR", "Failed to retrieve slide content from AI provider.");
-    }
+      const aiResponse = completion.choices[0].message?.content;
+      const presentationObject = JSON.parse(aiResponse as string);
+      // Execute atomic creation via Prisma nested write: all slides create together or rollback
+      if (!presentationObject.slides || !Array.isArray(presentationObject.slides) || presentationObject.slides.length === 0) {
+        throw new Error("No valid slides found in AI response");
+      }
 
-    const aiResponse = completion.choices[0].message?.content;
-    const presentationObject = JSON.parse(aiResponse as string);
-    // Execute atomic creation via Prisma nested write: all slides create together or rollback
-    if (!presentationObject.slides || !Array.isArray(presentationObject.slides) || presentationObject.slides.length === 0) {
-      throw new Error("No valid slides found in AI response");
-    }
-
-    const newPresentation = await prisma.presentation.create({
-      data: {
-        title: presentationObject.presentationTitle,
-        totalSlides: presentationObject.totalSlides,
-        themeColors: selectedThemeId,
-        userId: session.user.id,
-        slides: {
-          create: presentationObject.slides.map((slide: Slide) => ({
-            title: slide.title,
-            subtitle: slide.subtitle || "",
-            slideLayout: slide.slideLayout,
-            imgUrl: "",
-            slidenumber: slide.slideNumber,
-            content: slide.content || [],
-          })),
+      const newPresentation = await prisma.presentation.create({
+        data: {
+          title: presentationObject.presentationTitle,
+          totalSlides: presentationObject.totalSlides,
+          themeColors: selectedThemeId,
+          userId: session.user.id,
+          slides: {
+            create: presentationObject.slides.map((slide: Slide) => ({
+              title: slide.title,
+              subtitle: slide.subtitle || "",
+              slideLayout: slide.slideLayout,
+              imgUrl: "",
+              slidenumber: slide.slideNumber,
+              content: slide.content || [],
+            })),
+          },
         },
-      },
+      });
+      return newPresentation;
     });
 
     return apiOk({ presentationId: newPresentation.id });
