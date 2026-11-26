@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Promtpage from "@/components/promtpage";
 import SlideCard from "@/components/slidecard";
 import Navbar from "@/components/navbar";
@@ -8,6 +8,8 @@ import { displayThemes } from "@/lib/theme";
 import { Palette } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
+import { apiFetch, isRetryable, type ApiFailure, type UsageSummary } from '@/lib/api-client';
+import ErrorBanner from '@/components/error-banner';
 
 
 export default function Create() {
@@ -25,49 +27,55 @@ export default function Create() {
   const [slidecnt, setslidecnt] = useState<number>(5);
   const [loading, setloading] = useState(false);
   const [selectedThemeId, setSelectedThemeId] = useState<string>(displayThemes[0].id);
+  const [error, setError] = useState<ApiFailure | null>(null);
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
 
-    async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const refreshUsage = useCallback(async () => {
+    const res = await apiFetch<UsageSummary>('/api/usage');
+    if (res.ok) setUsage(res.data);
+  }, []);
 
-    try {
-      setloading(true);
+  useEffect(() => {
+    if (!session?.user) return;
+    let cancelled = false;
+    apiFetch<UsageSummary>('/api/usage').then((res) => {
+      if (!cancelled && res.ok) setUsage(res.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user]);
 
-      if (promt.trim().length === 0) {
-        setloading(false);
-        return;
-      }
+  const decksLeft = usage ? Math.max(0, usage.deck.limit - usage.deck.used) : null;
 
-      if (slidecnt > 20 || slidecnt < 1) {
-        alert("At maximum 20 slides can be generated.");
-        setloading(false);
-        return;
-      }
-      
-      const res = await fetch('/api/generateSlides', {
-        method: "POST",
-        headers: {
-          "Content-type": "application/json"
-        },
-        body: JSON.stringify({ prompt: promt, slideCount: slidecnt, themeId: selectedThemeId })
-      });
+  async function generate() {
+    if (promt.trim().length === 0 || slidecnt > 20 || slidecnt < 1) return;
 
-      if (!res.ok) {
-        console.error("Failed to generate content");
-        setloading(false);
-        return;
-      }
+    setloading(true);
+    setError(null);
+    const res = await apiFetch<{ presentationId: string }>('/api/generateSlides', {
+      method: 'POST',
+      body: JSON.stringify({ prompt: promt, slideCount: slidecnt, themeId: selectedThemeId }),
+    });
 
-      const data = await res.json();
-
-      setloading(false);
-      router.push(`/slides?id=${data.data.presentationId}`);
-
-    } catch (error) {
-      console.log(error);
-      setloading(false);
+    if (res.ok) {
+      router.push(`/slides?id=${res.data.presentationId}`);
+      return;
     }
+
+    setloading(false);
+    if (res.code === 'UNAUTHORIZED') {
+      router.push('/signin');
+      return;
+    }
+    setError(res);
+    void refreshUsage();
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    void generate();
+  }
 
   return (
     <div className="min-h-screen bg-[#fcfaf5] text-[#1a3300] font-sans selection:bg-[#ffe95c] selection:text-[#1a3300] flex flex-col">
@@ -86,8 +94,18 @@ export default function Create() {
         </p>
       </div>
 
+      {error && (
+        <ErrorBanner
+          message={error.message}
+          onRetry={isRetryable(error) ? () => void generate() : undefined}
+          onDismiss={() => setError(null)}
+        />
+      )}
+
       {/* Prompt Engine Container */}
       <Promtpage 
+        decksLeft={decksLeft}
+        usage={usage}
         promt={promt} 
         setpromt={setpromt} 
         loading={loading} 
