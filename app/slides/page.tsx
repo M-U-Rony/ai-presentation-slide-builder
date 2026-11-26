@@ -54,11 +54,7 @@ function SlideshowContent() {
       const res = await fetch("/api/generateImg", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slideId: currentSlide.id,
-          title: currentSlide.title,
-          content: currentSlide.content,
-        }),
+        body: JSON.stringify({ slideId: currentSlide.id }),
       });
 
       const data = await res.json();
