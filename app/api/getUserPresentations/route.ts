@@ -1,46 +1,21 @@
 import { prisma } from "@/lib/prisma";
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { apiOk, handleRoute, requireSession } from "@/lib/api";
 
-export async function GET(req: NextRequest) {
-  try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+// Always scoped to the signed-in user. There is intentionally no way to ask
+// for another user's presentations.
+export const GET = handleRoute("getUserPresentations", async () => {
+  const session = await requireSession();
 
-    // Determine target userId: session user or explicit query param
-    const searchParams = req.nextUrl.searchParams;
-    const queryUserId = searchParams.get("userId");
-    const targetUserId = queryUserId || session?.user?.id;
-
-    if (!targetUserId) {
-      return NextResponse.json(
-        { error: "Unauthorized. Please sign in." },
-        { status: 401 }
-      );
-    }
-
-    const presentations = await prisma.presentation.findMany({
-      where: { userId: targetUserId },
-      include: {
-        slides: {
-          orderBy: { slidenumber: "asc" },
-          take: 1,
-        },
+  const presentations = await prisma.presentation.findMany({
+    where: { userId: session.user.id },
+    include: {
+      slides: {
+        orderBy: { slidenumber: "asc" },
+        take: 1,
       },
-      orderBy: { id: "desc" },
-    });
+    },
+    orderBy: { id: "desc" },
+  });
 
-    return NextResponse.json({
-      success: true,
-      data: presentations,
-    });
-  } catch (error) {
-    console.error("Error fetching user presentations:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
-}
+  return apiOk(presentations);
+});

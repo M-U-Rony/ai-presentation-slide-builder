@@ -1,42 +1,30 @@
 import { OpenRouter } from '@openrouter/sdk';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { Slide } from '@/lib/types';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getEnv } from '@/lib/env';
+import { ApiError, apiOk, handleRoute, parseBody, requireSession } from '@/lib/api';
 
-export async function POST(req: NextRequest) {
-  try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+const BodySchema = z.object({
+  promt: z.string().min(1, "Prompt is required."),
+  slidecnt: z.coerce.number(),
+  selectedThemeId: z.string().min(1, "Theme is required."),
+});
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized. Please log in to create presentations." },
-        { status: 401 }
-      );
-    }
+export const POST = handleRoute("generateSlides", async (req: NextRequest) => {
+    const session = await requireSession();
+    const env = getEnv();
 
-    const { promt, slidecnt, selectedThemeId } = await req.json();
-
-    if (!promt || !slidecnt || !selectedThemeId) {
-      return NextResponse.json(
-        { error: "Both prompt and slide count are required." },
-        { status: 400 }
-      );
-    }
+    const { promt, slidecnt, selectedThemeId } = await parseBody(req, BodySchema);
 
     const numericSlideCount = Number(slidecnt);
     if (isNaN(numericSlideCount) || numericSlideCount < 1 || numericSlideCount > 20) {
-      return NextResponse.json(
-        { error: "At maximum 20 slides can be generated." },
-        { status: 400 }
-      );
+      throw new ApiError("VALIDATION_ERROR", "At maximum 20 slides can be generated.");
     }
 
     const client = new OpenRouter({
-      apiKey: process.env.OPENROUTER_API_KEY
+      apiKey: env.OPENROUTER_API_KEY
     });
 
 const SYSTEM_PROMPT = `You are an expert AI presentation slide builder like Gamma.ai.
@@ -95,7 +83,7 @@ RULES:
 
     const completion = await client.chat.send({
       chatRequest: {
-        model: process.env.Text_Generation_Model,
+        model: env.TEXT_GENERATION_MODEL,
         messages: [
           {
             role: 'system',
@@ -110,10 +98,7 @@ RULES:
     });
 
     if (!completion || !('choices' in completion) || !completion.choices.length) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to retrieve slide content from AI provider.' },
-        { status: 502 }
-      );
+      throw new ApiError("AI_PROVIDER_ERROR", "Failed to retrieve slide content from AI provider.");
     }
 
     const aiResponse = completion.choices[0].message?.content;
@@ -142,19 +127,5 @@ RULES:
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      presentationId: newPresentation.id,
-    });
-  } catch (error) {
-    console.log(error);
-
-    return NextResponse.json(
-      {
-        error: "Failed to generate slide content",
-        details: error
-      },
-      { status: 500 }
-    );
-  }
-}
+    return apiOk({ presentationId: newPresentation.id });
+});

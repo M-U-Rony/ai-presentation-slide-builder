@@ -62,13 +62,13 @@ function SlideshowContent() {
       });
 
       const data = await res.json();
-      if (data.success && data.image) {
+      if (data.success && data.data?.image) {
         setPresentation((prev) => {
           if (!prev) return prev;
           const updatedSlides = [...prev.slides];
           updatedSlides[activeSlideIndex] = {
             ...updatedSlides[activeSlideIndex],
-            imgUrl: data.image,
+            imgUrl: data.data.image,
           };
           return { ...prev, slides: updatedSlides };
         });
