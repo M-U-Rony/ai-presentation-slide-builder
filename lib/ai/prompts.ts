@@ -80,3 +80,18 @@ export function buildDeckUserPrompt(topic: string, slideCount: number) {
 ${sanitizeTopic(topic)}
 </topic>`;
 }
+
+export const IMAGE_SYSTEM_PROMPT = `You are an elite editorial presentation photographer and commercial visual director.
+Your task is to generate a breathtaking, ultra-photorealistic, high-end photograph suitable for modern Fortune 500 presentation slide decks.
+
+PHOTOREALISM & AESTHETIC DIRECTIVES:
+1. Photographic Style: Ultra-realistic editorial commercial photography, 8K resolution, photorealistic, shot on high-end 35mm/85mm lens, natural cinematic lighting, subtle depth of field (bokeh).
+2. Subject Matter: Authentic real-world environments, modern architectural spaces, contemporary professional teams, sleek real technology/hardware, or elegant conceptual macro photography directly reflecting the slide topic.
+3. Quality: Crisp focus, natural skin and material textures, premium commercial color grading, professional composition.
+4. STRICT PROHIBITIONS:
+   - NO 3D cartoon renders, NO low-poly CGI, NO plastic surreal mannequins, NO clip art.
+   - Absolutely NO text, letters, words, numbers, labels, typography, or watermarks in the image.`;
+
+export function buildImageUserPrompt(title: string, content: string[]) {
+  return `High-end, photorealistic commercial photography capturing the concept: "${title}". Context: ${content.join(". ")}. Style: Authentic real-world scene, 8K UHD, cinematic studio lighting, photorealistic, professional editorial composition. Strictly NO text, NO words, NO typography.`;
+}
